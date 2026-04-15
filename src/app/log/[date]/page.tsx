@@ -43,7 +43,7 @@ const slideIn: Variants = {
 
 function Sidebar({
   activeStep, setActiveStep,
-  date, log, vocabCount, writingDone, journalDone, flashcardsDone,
+  log, vocabCount, writingDone, journalDone, flashcardsDone,
   onUpdateLog,
 }: {
   activeStep: StepId
@@ -349,7 +349,6 @@ export default function LogPage() {
     )
   }
 
-  const activeStepConfig = STEPS.find(s => s.id === activeStep)!
   const nextStepConfig = STEPS[STEPS.findIndex(s => s.id === activeStep) + 1]
 
   return (

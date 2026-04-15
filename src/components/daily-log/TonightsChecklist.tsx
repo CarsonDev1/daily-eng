@@ -27,12 +27,10 @@ const ITEMS: { key: keyof Checklist; label: string; emoji: string; auto: boolean
 ]
 
 export function TonightsChecklist({
-  log,
   vocabCount,
   writingDone,
   journalDone,
   flashcardsDone,
-  onChecklistChange,
 }: Props) {
   const checklist: Checklist = {
     learned_10_words:    vocabCount >= 10,

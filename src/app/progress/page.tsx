@@ -165,7 +165,7 @@ export default function ProgressPage() {
   )
 }
 
-function StatCard({ icon, label, value, emoji, color, border }: {
+function StatCard({ label, value, emoji, color, border }: {
   icon: React.ReactNode; label: string; value: string
   emoji: string; color: string; border: string
 }) {
