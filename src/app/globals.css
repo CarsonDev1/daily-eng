@@ -1,94 +1,207 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* ─── Design tokens (light) ──────────────────────────────────────────────────── */
+
+:root {
+  /* shadcn base */
+  --background:        0 0% 98%;
+  --foreground:        222 47% 11%;
+  --card:              0 0% 100%;
+  --card-foreground:   222 47% 11%;
+  --popover:           0 0% 100%;
+  --popover-foreground:222 47% 11%;
+  --primary:           265 84% 58%;
+  --primary-foreground:0 0% 100%;
+  --secondary:         210 40% 96%;
+  --secondary-foreground:222 47% 20%;
+  --muted:             210 40% 96%;
+  --muted-foreground:  215 16% 47%;
+  --accent:            210 40% 94%;
+  --accent-foreground: 222 47% 11%;
+  --destructive:       0 84% 60%;
+  --destructive-foreground:0 0% 100%;
+  --border:            214 32% 91%;
+  --input:             214 32% 91%;
+  --ring:              265 84% 58%;
+  --radius:            0.75rem;
+
+  /* custom app tokens */
+  --c-bg:           #f1f5f9;
+  --c-card:         #ffffff;
+  --c-card-border:  rgba(148, 163, 184, 0.3);
+  --c-card-shadow:  0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+  --c-text-1:       #0f172a;
+  --c-text-2:       #475569;
+  --c-text-3:       #94a3b8;
+  --c-nav-bg:       rgba(255, 255, 255, 0.88);
+  --c-nav-border:   rgba(148, 163, 184, 0.25);
+  --c-accent-bg:    rgba(124, 58, 237, 0.08);
+  --c-accent-border:rgba(124, 58, 237, 0.2);
+  --c-sidebar-bg:   rgba(255, 255, 255, 0.9);
+  --c-input-bg:     #f8fafc;
+  --c-input-border: rgba(203, 213, 225, 0.8);
+  --c-blue-bg:      rgba(59, 130, 246, 0.06);
+  --c-blue-border:  rgba(59, 130, 246, 0.15);
+  --c-green-bg:     rgba(16, 185, 129, 0.06);
+  --c-green-border: rgba(16, 185, 129, 0.2);
+  --c-purple-bg:    rgba(124, 58, 237, 0.06);
+  --c-purple-border:rgba(124, 58, 237, 0.15);
+}
+
+/* ─── Design tokens (dark / galaxy) ─────────────────────────────────────────── */
+
+.dark {
+  /* shadcn base */
+  --background:        240 20% 5%;
+  --foreground:        213 31% 91%;
+  --card:              240 18% 8%;
+  --card-foreground:   213 31% 91%;
+  --popover:           240 18% 8%;
+  --popover-foreground:213 31% 91%;
+  --primary:           265 84% 66%;
+  --primary-foreground:0 0% 100%;
+  --secondary:         240 15% 14%;
+  --secondary-foreground:213 31% 75%;
+  --muted:             240 15% 12%;
+  --muted-foreground:  240 10% 52%;
+  --accent:            240 15% 14%;
+  --accent-foreground: 213 31% 91%;
+  --destructive:       0 63% 55%;
+  --destructive-foreground:0 0% 100%;
+  --border:            265 20% 18%;
+  --input:             240 15% 14%;
+  --ring:              265 84% 66%;
+
+  /* custom app tokens */
+  --c-bg:           #07071a;
+  --c-card:         rgba(14, 11, 36, 0.85);
+  --c-card-border:  rgba(139, 92, 246, 0.18);
+  --c-card-shadow:  0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(139,92,246,0.1);
+  --c-text-1:       #f1f5f9;
+  --c-text-2:       #94a3b8;
+  --c-text-3:       #64748b;
+  --c-nav-bg:       rgba(7, 7, 26, 0.82);
+  --c-nav-border:   rgba(139, 92, 246, 0.22);
+  --c-accent-bg:    rgba(139, 92, 246, 0.12);
+  --c-accent-border:rgba(139, 92, 246, 0.3);
+  --c-sidebar-bg:   rgba(14, 11, 36, 0.85);
+  --c-input-bg:     rgba(255, 255, 255, 0.05);
+  --c-input-border: rgba(255, 255, 255, 0.08);
+  --c-blue-bg:      rgba(96, 165, 250, 0.08);
+  --c-blue-border:  rgba(96, 165, 250, 0.18);
+  --c-green-bg:     rgba(52, 211, 153, 0.08);
+  --c-green-border: rgba(52, 211, 153, 0.2);
+  --c-purple-bg:    rgba(139, 92, 246, 0.1);
+  --c-purple-border:rgba(139, 92, 246, 0.22);
+}
+
+/* ─── Base styles ────────────────────────────────────────────────────────────── */
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-text-1);
+    transition: background-color 0.3s ease, color 0.2s ease;
   }
 }
 
-@layer base {
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
+/* ─── Galaxy background (dark only) ─────────────────────────────────────────── */
+
+.dark body {
+  background-image:
+    radial-gradient(ellipse at 15% 30%, rgba(109, 40, 217, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(6, 182, 212, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 55% 85%, rgba(139, 92, 246, 0.10) 0%, transparent 50%);
+}
+
+/* Nebula glows */
+.nebula-glow { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+.nebula-1 { width: 600px; height: 600px; top: -200px; left: -100px;
+  background: radial-gradient(circle, rgba(109,40,217,0.14) 0%, transparent 70%);
+  animation: drift 22s ease-in-out infinite alternate; }
+.nebula-2 { width: 500px; height: 500px; bottom: -100px; right: -100px;
+  background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%);
+  animation: drift 28s ease-in-out infinite alternate-reverse; }
+.dark .nebula-glow { display: block; }
+.nebula-glow { display: none; }
+
+@keyframes drift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(30px,20px) scale(1.06); }
+}
+
+/* Star field */
+.stars-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; display: none; }
+.dark .stars-layer { display: block; }
+.stars { position: absolute; inset: 0; animation: twinkle 6s ease-in-out infinite alternate; }
+.stars-sm {
+  background-image:
+    radial-gradient(1px 1px at 5% 8%, rgba(255,255,255,0.8) 0%,transparent 100%),
+    radial-gradient(1px 1px at 18% 22%,rgba(255,255,255,0.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 33% 45%,rgba(255,255,255,0.7) 0%,transparent 100%),
+    radial-gradient(1px 1px at 47% 12%,rgba(255,255,255,0.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 62% 67%,rgba(255,255,255,0.8) 0%,transparent 100%),
+    radial-gradient(1px 1px at 74% 33%,rgba(255,255,255,0.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 78%,rgba(255,255,255,0.7) 0%,transparent 100%),
+    radial-gradient(1px 1px at 11% 55%,rgba(255,255,255,0.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 79% 52%,rgba(255,255,255,0.8) 0%,transparent 100%);
+}
+.stars-md {
+  background-image:
+    radial-gradient(1.5px 1.5px at 8%  42%,rgba(200,180,255,0.9) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 29% 71%,rgba(180,220,255,0.8) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 68% 59%,rgba(180,220,255,0.9) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 84% 27%,rgba(200,180,255,0.8) 0%,transparent 100%);
+  animation-delay: 2s;
+}
+.stars-lg {
+  background-image:
+    radial-gradient(2px 2px at 20% 60%,rgba(255,255,255,1)   0%,transparent 100%),
+    radial-gradient(2px 2px at 70% 20%,rgba(200,180,255,1)   0%,transparent 100%),
+    radial-gradient(2px 2px at 90% 70%,rgba(255,255,255,0.9) 0%,transparent 100%);
+  animation-delay: 4s;
+}
+@keyframes twinkle { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* ─── Float animation (CSS, GPU-accelerated — no JS) ────────────────────────── */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+.float { animation: float-gentle 3s ease-in-out infinite; }
+
+/* ─── Progress shimmer ───────────────────────────────────────────────────────── */
+@keyframes progress-shimmer {
+  0%   { background-position: -300% center; }
+  100% { background-position: 300% center; }
+}
+.progress-shimmer {
+  background: linear-gradient(90deg, #7c3aed 0%, #60a5fa 30%, #a78bfa 60%, #60a5fa 80%, #7c3aed 100%);
+  background-size: 300% 100%;
+  animation: progress-shimmer 3s linear infinite;
+}
+
+/* ─── Utility classes ────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .card-surface {
+    background: var(--c-card);
+    border: 1px solid var(--c-card-border);
+    box-shadow: var(--c-card-shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  .text-1 { color: var(--c-text-1); }
+  .text-2 { color: var(--c-text-2); }
+  .text-3 { color: var(--c-text-3); }
+  .gradient-text {
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+  .text-balance { text-wrap: balance; }
 }
