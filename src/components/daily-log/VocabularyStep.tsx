@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DailyLog, VocabularyEntry } from '@/lib/supabase'
-import { useGenerateVocabulary, useUpdateMySentence, useUpsertDailyLog } from '@/hooks/useDailyLog'
+import { useGenerateVocabulary, useUpdateMySentence, useUpsertDailyLog, useAllVocabulary } from '@/hooks/useDailyLog'
 import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,6 +37,7 @@ export function VocabularyStep({ date, log, vocabulary, isLoading }: Props) {
   const generateVocab = useGenerateVocabulary()
   const updateSentence = useUpdateMySentence()
   const upsertLog = useUpsertDailyLog()
+  const { data: allVocabulary } = useAllVocabulary()
   const [sentences, setSentences] = useState<Record<string, string>>({})
 
   const hasWords = vocabulary.length > 0
@@ -57,12 +58,16 @@ export function VocabularyStep({ date, log, vocabulary, isLoading }: Props) {
       }
     }
 
+    const learnedWords = (allVocabulary ?? [])
+      .filter((v) => v.date !== date)
+      .map((v) => v.word)
+
     generateVocab.mutate({
       logId,
       date,
       topic: log?.topic ?? 'Daily Life',
       weekNumber: log?.week_number ?? 1,
-      existingWords: [],
+      existingWords: learnedWords,
     })
   }
 
