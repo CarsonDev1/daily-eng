@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAllVocabulary } from '@/hooks/useDailyLog'
 import type { VocabularyEntry } from '@/lib/supabase'
-import { Search, Library, BookOpen, ChevronDown, ChevronUp, Calendar } from 'lucide-react'
+import { Search, BookOpen, ChevronDown, ChevronUp, Calendar } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 
 const WEEK_COLORS = [

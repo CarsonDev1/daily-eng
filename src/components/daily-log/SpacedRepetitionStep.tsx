@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { RefreshCw, CheckCircle2, XCircle, Trophy, ChevronRight, Sparkles, AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { useWordsForReview, useUpdateWordReview } from '@/hooks/useDailyLog'
 import { ReviewItem } from '@/lib/supabase'
 
