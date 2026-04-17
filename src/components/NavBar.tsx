@@ -4,16 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { format } from 'date-fns'
-import { BookOpen, BarChart2, Library, Sun, Moon } from 'lucide-react'
+import { BookOpen, BarChart2, Library, CalendarDays, MessagesSquare, Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 
 const today = format(new Date(), 'yyyy-MM-dd')
 
 const links = [
-  { href: `/log/${today}`, label: 'Today',    icon: BookOpen },
-  { href: '/progress',    label: 'Progress',  icon: BarChart2 },
-  { href: '/vocabulary-bank', label: 'Vocab', icon: Library },
+  { href: `/log/${today}`,    label: 'Today',    icon: BookOpen },
+  { href: '/plan',            label: 'Plan',     icon: CalendarDays },
+  { href: '/conversation',    label: 'Practice', icon: MessagesSquare },
+  { href: '/progress',        label: 'Progress', icon: BarChart2 },
+  { href: '/vocabulary-bank', label: 'Vocab',    icon: Library },
 ]
 
 export function NavBar() {
@@ -43,7 +45,10 @@ export function NavBar() {
         <div className="flex items-center gap-1">
           {/* Nav links */}
           {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href.startsWith('/log') && pathname.startsWith('/log'))
+            const active = pathname === href
+              || (href.startsWith('/log') && pathname.startsWith('/log'))
+              || (href === '/plan' && pathname.startsWith('/plan'))
+              || (href === '/conversation' && pathname.startsWith('/conversation'))
             return (
               <Link
                 key={href}

@@ -14,12 +14,13 @@ import { ReviewStep }             from '@/components/daily-log/ReviewStep'
 import { FlashcardStep }          from '@/components/daily-log/FlashcardStep'
 import { SpacedRepetitionStep }   from '@/components/daily-log/SpacedRepetitionStep'
 import { QuizStep }               from '@/components/daily-log/QuizStep'
+import { AnalyzeStep }            from '@/components/daily-log/AnalyzeStep'
 import { Skeleton }       from '@/components/ui/skeleton'
 import { DailyLog }       from '@/lib/supabase'
 import {
   BookOpen, BrainCircuit, PenLine,
   ClipboardCheck, Clock, ChevronRight,
-  CheckCircle2, Circle, RefreshCw, Target,
+  CheckCircle2, Circle, RefreshCw, Target, Languages,
 } from 'lucide-react'
 
 // ─── Steps config ─────────────────────────────────────────────────────────────
@@ -30,7 +31,8 @@ const STEPS = [
   { id: 'flashcards',  label: 'Flashcards',  sub: 'Flip & memorise',    icon: BrainCircuit,   emoji: '🧠', color: '#a78bfa', num: 3 },
   { id: 'quiz',        label: 'Quiz',        sub: 'MC + fill-in-blank', icon: Target,         emoji: '🎯', color: '#ec4899', num: 4 },
   { id: 'writing',     label: 'Writing',     sub: '5–8 sentences',      icon: PenLine,        emoji: '✍️', color: '#34d399', num: 5 },
-  { id: 'review',      label: 'Review',      sub: 'Self-reflect',       icon: ClipboardCheck, emoji: '⭐', color: '#fb923c', num: 6 },
+  { id: 'analyze',     label: 'Analyze',     sub: 'Fix "Việt hóa"',     icon: Languages,      emoji: '🔍', color: '#06b6d4', num: 6 },
+  { id: 'review',      label: 'Review',      sub: 'Self-reflect',       icon: ClipboardCheck, emoji: '⭐', color: '#fb923c', num: 7 },
 ] as const
 
 type StepId = typeof STEPS[number]['id']
@@ -131,6 +133,7 @@ function Sidebar({
                   : s.id === 'flashcards'  ? checklist.reviewed_flashcards
                   : s.id === 'quiz'        ? checklist.quiz_done
                   : s.id === 'writing'     ? checklist.finished_writing
+                  : s.id === 'analyze'     ? false
                   : checklist.wrote_journal)
                   ? s.color : 'var(--c-input-border)',
                 boxShadow: (s.id === 'vocabulary'  ? checklist.learned_10_words
@@ -138,6 +141,7 @@ function Sidebar({
                   : s.id === 'flashcards'  ? checklist.reviewed_flashcards
                   : s.id === 'quiz'        ? checklist.quiz_done
                   : s.id === 'writing'     ? checklist.finished_writing
+                  : s.id === 'analyze'     ? false
                   : checklist.wrote_journal)
                   ? `0 0 6px ${s.color}` : 'none',
               }}
@@ -156,6 +160,7 @@ function Sidebar({
                      : step.id === 'flashcards'  ? checklist.reviewed_flashcards
                      : step.id === 'quiz'        ? checklist.quiz_done
                      : step.id === 'writing'     ? checklist.finished_writing
+                     : step.id === 'analyze'     ? false
                      : checklist.wrote_journal
 
           return (
@@ -482,6 +487,9 @@ export default function LogPage() {
             )}
             {activeStep === 'writing' && (
               <WritingStep date={date} log={log} vocabulary={vocabulary} writing={writing ?? null} />
+            )}
+            {activeStep === 'analyze' && (
+              <AnalyzeStep />
             )}
             {activeStep === 'review' && (
               <ReviewStep date={date} log={log} writing={writing ?? null} />

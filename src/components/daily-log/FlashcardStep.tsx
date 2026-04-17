@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { VocabularyEntry } from '@/lib/supabase'
-import { BrainCircuit, CheckCircle2, XCircle, RotateCcw, Trophy, ChevronRight } from 'lucide-react'
+import { BrainCircuit, CheckCircle2, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpeakButton } from './SpeakButton'
+import { api } from '@/lib/axios'
 
 interface Props {
   vocabulary: VocabularyEntry[]
@@ -19,11 +20,36 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [results, setResults] = useState<Record<string, Result>>({})
   const [finished, setFinished] = useState(false)
+  const [mnemonics, setMnemonics] = useState<Record<string, string>>({})
+  const [mnemonicLoading, setMnemonicLoading] = useState(false)
 
   const total = vocabulary.length
   const current = vocabulary[currentIdx]
   const knownCount = Object.values(results).filter(r => r === 'know').length
   const progress = total > 0 ? (currentIdx / total) * 100 : 0
+
+  // Fetch mnemonics once when vocabulary is available
+  useEffect(() => {
+    if (vocabulary.length === 0) return
+    setMnemonicLoading(true)
+    api.post('/generate-mnemonics', {
+      words: vocabulary.map((v) => ({ word: v.word, meaning: v.meaning })),
+    })
+      .then(({ data }) => {
+        const map: Record<string, string> = {}
+        const list = data.mnemonics as Array<{ word: string; mnemonic: string }>
+        list.forEach((m) => {
+          const entry = vocabulary.find(
+            (v) => v.word.toLowerCase() === m.word.toLowerCase()
+          )
+          if (entry) map[entry.id] = m.mnemonic
+        })
+        setMnemonics(map)
+      })
+      .catch(() => { /* silently skip if mnemonic fetch fails */ })
+      .finally(() => setMnemonicLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabulary.map(v => v.id).join(',')])
 
   if (total === 0) {
     return (
@@ -95,8 +121,11 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
     )
   }
 
+  const currentMnemonic = current ? mnemonics[current.id] : undefined
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BrainCircuit className="w-5 h-5 text-violet-500" />
@@ -107,17 +136,24 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          {mnemonicLoading && (
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--c-text-3)' }}>
+              <Lightbulb className="w-3 h-3 animate-pulse text-amber-400" /> Loading hints...
+            </span>
+          )}
           <span className="text-emerald-500 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {knownCount}</span>
           <span className="text-orange-500 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> {currentIdx - knownCount}</span>
         </div>
       </div>
 
+      {/* Progress bar */}
       <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--c-card-border)' }}>
         <motion.div className="h-full rounded-full progress-shimmer"
           animate={{ width: `${progress}%` }}
           transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
       </div>
 
+      {/* Flip card */}
       <AnimatePresence mode="wait">
         <motion.div key={currentIdx}
           initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }}
@@ -126,6 +162,7 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
             animate={{ rotateY: flipped ? 180 : 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 25 }}
             style={{ transformStyle: 'preserve-3d', cursor: 'pointer', position: 'relative', minHeight: 260 }}>
+
             {/* Front */}
             <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
               style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', background: 'var(--c-card)', border: '1px solid var(--c-accent-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
@@ -136,6 +173,7 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
               </div>
               <ChevronRight className="w-5 h-5 mt-6 rotate-90" style={{ color: 'var(--c-text-3)' }} />
             </div>
+
             {/* Back */}
             <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
               style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'var(--c-card)', border: '1px solid var(--c-blue-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
@@ -164,6 +202,47 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
         </motion.div>
       </AnimatePresence>
 
+      {/* Mnemonic hint — appears below card when flipped */}
+      <AnimatePresence>
+        {flipped && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.25, delay: 0.1 }}
+          >
+            {currentMnemonic ? (
+              <div
+                className="rounded-xl px-4 py-3 flex items-start gap-3"
+                style={{
+                  background: 'rgba(245,158,11,0.08)',
+                  border: '1px solid rgba(245,158,11,0.28)',
+                }}
+              >
+                <Lightbulb className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#f59e0b' }}>
+                    Mẹo nhớ
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--c-text-2)' }}>
+                    {currentMnemonic}
+                  </p>
+                </div>
+              </div>
+            ) : mnemonicLoading ? (
+              <div
+                className="rounded-xl px-4 py-3 flex items-center gap-2"
+                style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}
+              >
+                <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
+                <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>Đang tạo mẹo nhớ...</p>
+              </div>
+            ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Know / Forgot buttons */}
       <AnimatePresence>
         {flipped && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
@@ -185,7 +264,10 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
           </motion.div>
         )}
       </AnimatePresence>
-      {!flipped && <p className="text-center text-xs" style={{ color: 'var(--c-text-3)' }}>Tap card to reveal meaning</p>}
+
+      {!flipped && (
+        <p className="text-center text-xs" style={{ color: 'var(--c-text-3)' }}>Tap card to reveal meaning</p>
+      )}
     </div>
   )
 }
