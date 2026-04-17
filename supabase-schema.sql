@@ -61,19 +61,35 @@ create table if not exists progress_days (
   created_at   timestamptz not null default now()
 );
 
+-- Word reviews: Spaced Repetition System (SRS) — one row per vocabulary entry
+-- Intervals double on correct answer (1 → 2 → 4 → 8 → 16 → 30 days), reset to 1 on wrong
+create table if not exists word_reviews (
+  id                  uuid primary key default gen_random_uuid(),
+  vocabulary_entry_id uuid not null references vocabulary_entries(id) on delete cascade,
+  next_review_date    date not null,
+  interval_days       int not null default 1,
+  review_count        int not null default 0,
+  last_reviewed_at    timestamptz,
+  created_at          timestamptz not null default now(),
+  unique(vocabulary_entry_id)
+);
+
 -- Indexes for fast queries
 create index if not exists idx_vocabulary_entries_date on vocabulary_entries(date);
 create index if not exists idx_vocabulary_entries_week on vocabulary_entries(week_number);
 create index if not exists idx_progress_days_date on progress_days(date);
+create index if not exists idx_word_reviews_next_review_date on word_reviews(next_review_date);
 
 -- Row Level Security (optional — disable if no auth)
 alter table daily_logs enable row level security;
 alter table vocabulary_entries enable row level security;
 alter table writing_sessions enable row level security;
 alter table progress_days enable row level security;
+alter table word_reviews enable row level security;
 
 -- Allow all for now (personal app, no auth)
 create policy "allow all" on daily_logs for all using (true) with check (true);
 create policy "allow all" on vocabulary_entries for all using (true) with check (true);
 create policy "allow all" on writing_sessions for all using (true) with check (true);
 create policy "allow all" on progress_days for all using (true) with check (true);
+create policy "allow all" on word_reviews for all using (true) with check (true);

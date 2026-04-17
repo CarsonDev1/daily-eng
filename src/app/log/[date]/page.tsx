@@ -1,32 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format, parseISO, isValid } from 'date-fns'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import {
   useDailyLog, useUpsertDailyLog,
-  useVocabularyEntries, useWritingSession,
+  useVocabularyEntries, useWritingSession, useUpsertProgressDay,
 } from '@/hooks/useDailyLog'
-import { VocabularyStep } from '@/components/daily-log/VocabularyStep'
-import { WritingStep }    from '@/components/daily-log/WritingStep'
-import { ReviewStep }     from '@/components/daily-log/ReviewStep'
-import { FlashcardStep }  from '@/components/daily-log/FlashcardStep'
+import { VocabularyStep }        from '@/components/daily-log/VocabularyStep'
+import { WritingStep }            from '@/components/daily-log/WritingStep'
+import { ReviewStep }             from '@/components/daily-log/ReviewStep'
+import { FlashcardStep }          from '@/components/daily-log/FlashcardStep'
+import { SpacedRepetitionStep }   from '@/components/daily-log/SpacedRepetitionStep'
+import { QuizStep }               from '@/components/daily-log/QuizStep'
 import { Skeleton }       from '@/components/ui/skeleton'
 import { DailyLog }       from '@/lib/supabase'
 import {
   BookOpen, BrainCircuit, PenLine,
   ClipboardCheck, Clock, ChevronRight,
-  CheckCircle2, Circle,
+  CheckCircle2, Circle, RefreshCw, Target,
 } from 'lucide-react'
 
 // ─── Steps config ─────────────────────────────────────────────────────────────
 
 const STEPS = [
   { id: 'vocabulary',  label: 'Vocabulary',  sub: '10 new words',       icon: BookOpen,       emoji: '📚', color: '#60a5fa', num: 1 },
-  { id: 'flashcards',  label: 'Flashcards',  sub: 'Review & memorise',  icon: BrainCircuit,   emoji: '🧠', color: '#a78bfa', num: 2 },
-  { id: 'writing',     label: 'Writing',     sub: '5–8 sentences',      icon: PenLine,        emoji: '✍️', color: '#34d399', num: 3 },
-  { id: 'review',      label: 'Review',      sub: 'Self-reflect',       icon: ClipboardCheck, emoji: '⭐', color: '#fb923c', num: 4 },
+  { id: 'spaced-rep',  label: 'Review',      sub: 'Spaced repetition',  icon: RefreshCw,      emoji: '🔄', color: '#f59e0b', num: 2 },
+  { id: 'flashcards',  label: 'Flashcards',  sub: 'Flip & memorise',    icon: BrainCircuit,   emoji: '🧠', color: '#a78bfa', num: 3 },
+  { id: 'quiz',        label: 'Quiz',        sub: 'MC + fill-in-blank', icon: Target,         emoji: '🎯', color: '#ec4899', num: 4 },
+  { id: 'writing',     label: 'Writing',     sub: '5–8 sentences',      icon: PenLine,        emoji: '✍️', color: '#34d399', num: 5 },
+  { id: 'review',      label: 'Review',      sub: 'Self-reflect',       icon: ClipboardCheck, emoji: '⭐', color: '#fb923c', num: 6 },
 ] as const
 
 type StepId = typeof STEPS[number]['id']
@@ -43,7 +47,7 @@ const slideIn: Variants = {
 
 function Sidebar({
   activeStep, setActiveStep,
-  log, vocabCount, writingDone, journalDone, flashcardsDone,
+  log, vocabCount, writingDone, journalDone, flashcardsDone, spacedRepDone, quizDone,
   onUpdateLog,
 }: {
   activeStep: StepId
@@ -54,11 +58,15 @@ function Sidebar({
   writingDone: boolean
   journalDone: boolean
   flashcardsDone: boolean
+  spacedRepDone: boolean
+  quizDone: boolean
   onUpdateLog: (f: Partial<DailyLog>) => void
 }) {
   const checklist = {
     learned_10_words:    vocabCount >= 10,
+    reviewed_old_words:  spacedRepDone,
     reviewed_flashcards: flashcardsDone,
+    quiz_done:           quizDone,
     finished_writing:    writingDone,
     wrote_journal:       journalDone,
   }
@@ -67,9 +75,11 @@ function Sidebar({
 
   const checklistItems = [
     { key: 'learned_10_words',    label: '10 words learned',   done: checklist.learned_10_words,    emoji: '📚', color: '#60a5fa' },
-    { key: 'reviewed_flashcards', label: 'Flashcards done',    done: checklist.reviewed_flashcards,  emoji: '🧠', color: '#a78bfa' },
-    { key: 'finished_writing',    label: 'Writing done',       done: checklist.finished_writing,     emoji: '✍️', color: '#34d399' },
-    { key: 'wrote_journal',       label: 'Mini journal',       done: checklist.wrote_journal,        emoji: '⭐', color: '#fb923c' },
+    { key: 'reviewed_old_words',  label: 'Spaced review',      done: checklist.reviewed_old_words,  emoji: '🔄', color: '#f59e0b' },
+    { key: 'reviewed_flashcards', label: 'Flashcards done',    done: checklist.reviewed_flashcards, emoji: '🧠', color: '#a78bfa' },
+    { key: 'quiz_done',           label: 'Quiz passed',        done: checklist.quiz_done,           emoji: '🎯', color: '#ec4899' },
+    { key: 'finished_writing',    label: 'Writing done',       done: checklist.finished_writing,    emoji: '✍️', color: '#34d399' },
+    { key: 'wrote_journal',       label: 'Mini journal',       done: checklist.wrote_journal,       emoji: '⭐', color: '#fb923c' },
   ]
 
   return (
@@ -84,12 +94,12 @@ function Sidebar({
           <span
             className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{
-              background: completedCount === 4 ? 'rgba(52,211,153,0.15)' : 'var(--c-accent-bg)',
-              color: completedCount === 4 ? '#34d399' : '#a78bfa',
-              border: completedCount === 4 ? '1px solid rgba(52,211,153,0.3)' : '1px solid var(--c-accent-border)',
+              background: completedCount === 6 ? 'rgba(52,211,153,0.15)' : 'var(--c-accent-bg)',
+              color: completedCount === 6 ? '#34d399' : '#a78bfa',
+              border: completedCount === 6 ? '1px solid rgba(52,211,153,0.3)' : '1px solid var(--c-accent-border)',
             }}
           >
-            {completedCount}/4 {completedCount === 4 ? '🔥' : ''}
+            {completedCount}/5 {completedCount === 6 ? '🔥' : ''}
           </span>
         </div>
         {/* Animated progress bar */}
@@ -101,7 +111,7 @@ function Sidebar({
               backgroundSize: '200% 100%',
             }}
             animate={{
-              width: `${(completedCount / 4) * 100}%`,
+              width: `${(completedCount / 6) * 100}%`,
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
             }}
             transition={{
@@ -116,14 +126,18 @@ function Sidebar({
               key={s.id}
               className="w-1.5 h-1.5 rounded-full transition-all duration-300"
               style={{
-                background: (s.id === 'vocabulary' ? checklist.learned_10_words
-                  : s.id === 'flashcards' ? checklist.reviewed_flashcards
-                  : s.id === 'writing' ? checklist.finished_writing
+                background: (s.id === 'vocabulary'  ? checklist.learned_10_words
+                  : s.id === 'spaced-rep'  ? checklist.reviewed_old_words
+                  : s.id === 'flashcards'  ? checklist.reviewed_flashcards
+                  : s.id === 'quiz'        ? checklist.quiz_done
+                  : s.id === 'writing'     ? checklist.finished_writing
                   : checklist.wrote_journal)
                   ? s.color : 'var(--c-input-border)',
-                boxShadow: (s.id === 'vocabulary' ? checklist.learned_10_words
-                  : s.id === 'flashcards' ? checklist.reviewed_flashcards
-                  : s.id === 'writing' ? checklist.finished_writing
+                boxShadow: (s.id === 'vocabulary'  ? checklist.learned_10_words
+                  : s.id === 'spaced-rep'  ? checklist.reviewed_old_words
+                  : s.id === 'flashcards'  ? checklist.reviewed_flashcards
+                  : s.id === 'quiz'        ? checklist.quiz_done
+                  : s.id === 'writing'     ? checklist.finished_writing
                   : checklist.wrote_journal)
                   ? `0 0 6px ${s.color}` : 'none',
               }}
@@ -137,8 +151,10 @@ function Sidebar({
         {STEPS.map((step) => {
           const isActive = activeStep === step.id
           const Icon = step.icon
-          const done = step.id === 'vocabulary' ? checklist.learned_10_words
-                     : step.id === 'flashcards' ? checklist.reviewed_flashcards
+          const done = step.id === 'vocabulary'  ? checklist.learned_10_words
+                     : step.id === 'spaced-rep'  ? checklist.reviewed_old_words
+                     : step.id === 'flashcards'  ? checklist.reviewed_flashcards
+                     : step.id === 'quiz'        ? checklist.quiz_done
                      : step.id === 'writing'     ? checklist.finished_writing
                      : checklist.wrote_journal
 
@@ -244,7 +260,7 @@ function Sidebar({
             )}
           </div>
         ))}
-        {completedCount === 4 && (
+        {completedCount === 6 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -296,6 +312,7 @@ export default function LogPage() {
   const { data: vocabulary = [], isLoading: vocabLoading } = useVocabularyEntries(date)
   const { data: writing } = useWritingSession(date)
   const upsertLog = useUpsertDailyLog()
+  const upsertProgressDay = useUpsertProgressDay()
 
   const parsedDate = parseISO(date)
   const displayDate = isValid(parsedDate) ? format(parsedDate, 'EEEE, MMMM d') : date
@@ -303,12 +320,35 @@ export default function LogPage() {
 
   const checklist: DailyLog['checklist'] = log?.checklist ?? {
     learned_10_words: false, finished_writing: false,
-    wrote_journal: false,    reviewed_flashcards: false,
+    wrote_journal: false, reviewed_flashcards: false, reviewed_old_words: false, quiz_done: false,
+  }
+
+  const handleSpacedRepComplete = () => {
+    upsertLog.mutate({ date, checklist: { ...checklist, reviewed_old_words: true }, week_number: log?.week_number ?? 1 })
   }
 
   const handleFlashcardComplete = () => {
     upsertLog.mutate({ date, checklist: { ...checklist, reviewed_flashcards: true }, week_number: log?.week_number ?? 1 })
   }
+
+  const handleQuizComplete = () => {
+    upsertLog.mutate({ date, checklist: { ...checklist, quiz_done: true }, week_number: log?.week_number ?? 1 })
+  }
+
+  // Auto-upsert progress_day whenever the session becomes complete
+  const sessionDone = vocabulary.length >= 10 && checklist.reviewed_flashcards &&
+                      !!writing?.content && !!writing?.mini_journal
+  useEffect(() => {
+    if (sessionDone) {
+      upsertProgressDay.mutate({
+        date,
+        completed: true,
+        words_count: vocabulary.length,
+        writing_done: !!writing?.content,
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionDone, date])
 
   // ── Error state ──
   if (logError) {
@@ -364,6 +404,8 @@ export default function LogPage() {
           writingDone={!!writing?.content}
           journalDone={!!writing?.mini_journal}
           flashcardsDone={checklist.reviewed_flashcards}
+          spacedRepDone={checklist.reviewed_old_words ?? false}
+          quizDone={checklist.quiz_done ?? false}
           onUpdateLog={(fields) => upsertLog.mutate({ date, week_number: log?.week_number ?? 1, ...fields })}
         />
       </div>
@@ -429,8 +471,14 @@ export default function LogPage() {
             {activeStep === 'vocabulary' && (
               <VocabularyStep date={date} log={log} vocabulary={vocabulary} isLoading={vocabLoading} />
             )}
+            {activeStep === 'spaced-rep' && (
+              <SpacedRepetitionStep date={date} onComplete={handleSpacedRepComplete} />
+            )}
             {activeStep === 'flashcards' && (
               <FlashcardStep vocabulary={vocabulary} onComplete={handleFlashcardComplete} />
+            )}
+            {activeStep === 'quiz' && (
+              <QuizStep vocabulary={vocabulary} onComplete={handleQuizComplete} />
             )}
             {activeStep === 'writing' && (
               <WritingStep date={date} log={log} vocabulary={vocabulary} writing={writing ?? null} />

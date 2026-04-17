@@ -15,8 +15,28 @@ export interface DailyLog {
     finished_writing: boolean
     wrote_journal: boolean
     reviewed_flashcards: boolean
+    reviewed_old_words?: boolean
+    quiz_done?: boolean
   }
   created_at: string
+}
+
+export interface WordReview {
+  id: string
+  vocabulary_entry_id: string
+  next_review_date: string
+  interval_days: number
+  review_count: number
+  last_reviewed_at: string | null
+  created_at: string
+}
+
+export interface ReviewItem {
+  reviewId: string
+  intervalDays: number
+  reviewCount: number
+  nextReviewDate: string
+  entry: VocabularyEntry
 }
 
 export interface VocabularyEntry {
