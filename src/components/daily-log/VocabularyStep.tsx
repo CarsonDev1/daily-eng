@@ -11,6 +11,7 @@ import { DailyLog, VocabularyEntry } from '@/lib/supabase'
 import { useGenerateVocabulary, useUpdateMySentence, useUpsertDailyLog, useAllVocabulary } from '@/hooks/useDailyLog'
 import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+import { SpeakButton } from './SpeakButton'
 
 // Rainbow palette for the 10 word slots
 const WORD_COLORS = [
@@ -177,9 +178,12 @@ export function VocabularyStep({ date, log, vocabulary, isLoading }: Props) {
                       {idx + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-base leading-tight" style={{ color: 'var(--c-text-1)' }}>
-                        {entry.word}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-base leading-tight" style={{ color: 'var(--c-text-1)' }}>
+                          {entry.word}
+                        </p>
+                        <SpeakButton word={entry.word} />
+                      </div>
                       <p className="text-sm mt-0.5" style={{ color: 'var(--c-text-2)' }}>
                         {entry.meaning}
                       </p>

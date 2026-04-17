@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { VocabularyEntry } from '@/lib/supabase'
 import { BrainCircuit, CheckCircle2, XCircle, RotateCcw, Trophy, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SpeakButton } from './SpeakButton'
 
 interface Props {
   vocabulary: VocabularyEntry[]
@@ -129,13 +130,19 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
             <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
               style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', background: 'var(--c-card)', border: '1px solid var(--c-accent-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
               <p className="text-xs font-semibold text-violet-500 uppercase tracking-widest mb-4">Tap to reveal meaning</p>
-              <p className="text-5xl font-bold tracking-tight" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+              <div className="flex items-center gap-3">
+                <p className="text-5xl font-bold tracking-tight" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+                <SpeakButton word={current?.word ?? ''} size="md" />
+              </div>
               <ChevronRight className="w-5 h-5 mt-6 rotate-90" style={{ color: 'var(--c-text-3)' }} />
             </div>
             {/* Back */}
             <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
               style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'var(--c-card)', border: '1px solid var(--c-blue-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
-              <p className="text-3xl font-bold mb-4" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <p className="text-3xl font-bold" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+                <SpeakButton word={current?.word ?? ''} size="md" />
+              </div>
               <div className="w-full space-y-3">
                 <div className="rounded-xl px-4 py-3 text-center" style={{ background: 'var(--c-purple-bg)', border: '1px solid var(--c-purple-border)' }}>
                   <p className="text-xs text-violet-500 font-medium mb-1">Meaning</p>

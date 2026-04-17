@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns'
 import { RefreshCw, CheckCircle2, XCircle, Trophy, ChevronRight, Sparkles, AlertTriangle } from 'lucide-react'
 import { useWordsForReview, useUpdateWordReview } from '@/hooks/useDailyLog'
 import { ReviewItem } from '@/lib/supabase'
+import { SpeakButton } from './SpeakButton'
 
 interface Props {
   date: string
@@ -254,9 +255,12 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
                 Learned {learnedDate}
               </span>
               <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest">Tap to reveal</p>
-              <p className="text-5xl font-bold tracking-tight text-center" style={{ color: 'var(--c-text-1)' }}>
-                {current.entry.word}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-5xl font-bold tracking-tight text-center" style={{ color: 'var(--c-text-1)' }}>
+                  {current.entry.word}
+                </p>
+                <SpeakButton word={current.entry.word} size="md" />
+              </div>
               <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>Review #{current.reviewCount + 1}</p>
               <ChevronRight className="w-4 h-4 rotate-90 opacity-40" style={{ color: 'var(--c-text-3)' }} />
             </div>
@@ -271,7 +275,10 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
                 backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)',
               }}
             >
-              <p className="text-2xl font-bold text-center" style={{ color: 'var(--c-text-1)' }}>{current.entry.word}</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-2xl font-bold text-center" style={{ color: 'var(--c-text-1)' }}>{current.entry.word}</p>
+                <SpeakButton word={current.entry.word} size="md" />
+              </div>
               <div
                 className="rounded-xl px-4 py-3 text-center"
                 style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}
