@@ -357,7 +357,7 @@ export function AnalyzeStep() {
             Gõ câu tiếng Anh bất kỳ
           </p>
           <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>
-            AI sẽ cho điểm mức độ "Việt hóa" và viết lại 3 phiên bản tự nhiên hơn
+            AI sẽ cho điểm mức độ &quot;Việt hóa&quot; và viết lại 3 phiên bản tự nhiên hơn
           </p>
         </motion.div>
       )}
