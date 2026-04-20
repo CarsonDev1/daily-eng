@@ -1,31 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { DailyLog, VocabularyEntry } from '@/lib/supabase'
 import { useGenerateVocabulary, useUpdateMySentence, useUpsertDailyLog, useAllVocabulary } from '@/hooks/useDailyLog'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Volume2, Bookmark } from 'lucide-react'
 import { toast } from 'sonner'
-import { SpeakButton } from './SpeakButton'
-
-// Rainbow palette for the 10 word slots
-const WORD_COLORS = [
-  { accent: '#60a5fa', bg: 'rgba(96,165,250,0.09)',  border: 'rgba(96,165,250,0.30)' },
-  { accent: '#a78bfa', bg: 'rgba(167,139,250,0.09)', border: 'rgba(167,139,250,0.30)' },
-  { accent: '#34d399', bg: 'rgba(52,211,153,0.09)',  border: 'rgba(52,211,153,0.30)'  },
-  { accent: '#fb923c', bg: 'rgba(251,146,60,0.09)',  border: 'rgba(251,146,60,0.30)'  },
-  { accent: '#f472b6', bg: 'rgba(244,114,182,0.09)', border: 'rgba(244,114,182,0.30)' },
-  { accent: '#38bdf8', bg: 'rgba(56,189,248,0.09)',  border: 'rgba(56,189,248,0.30)'  },
-  { accent: '#4ade80', bg: 'rgba(74,222,128,0.09)',  border: 'rgba(74,222,128,0.30)'  },
-  { accent: '#fbbf24', bg: 'rgba(251,191,36,0.09)',  border: 'rgba(251,191,36,0.30)'  },
-  { accent: '#f87171', bg: 'rgba(248,113,113,0.09)', border: 'rgba(248,113,113,0.30)' },
-  { accent: '#c084fc', bg: 'rgba(192,132,252,0.09)', border: 'rgba(192,132,252,0.30)' },
-]
 
 interface Props {
   date: string
@@ -34,12 +12,13 @@ interface Props {
   isLoading: boolean
 }
 
+const COLORS = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'] as const
+
 export function VocabularyStep({ date, log, vocabulary, isLoading }: Props) {
   const generateVocab = useGenerateVocabulary()
   const updateSentence = useUpdateMySentence()
   const upsertLog = useUpsertDailyLog()
   const { data: allVocabulary } = useAllVocabulary()
-  const [sentences, setSentences] = useState<Record<string, string>>({})
 
   const hasWords = vocabulary.length > 0
 
@@ -78,171 +57,111 @@ export function VocabularyStep({ date, log, vocabulary, isLoading }: Props) {
     }
   }
 
+  const handleSpeak = (word: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utt = new SpeechSynthesisUtterance(word)
+      utt.lang = 'en-US'
+      window.speechSynthesis.speak(utt)
+    }
+  }
+
   const isPending = generateVocab.isPending || upsertLog.isPending
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="pt-6 space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" style={{ background: 'var(--c-card-border)' }} />
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ height: 120, borderRadius: 14, background: 'var(--chip)', border: '1.5px solid var(--line-soft)', animation: 'pulse 1.5s infinite' }} />
+        ))}
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <span className="text-xl">📚</span>
-              <span>Vocabulary</span>
-              <Badge
-                className="ml-1 font-bold"
-                style={{
-                  background: vocabulary.length >= 10 ? 'rgba(52,211,153,0.15)' : 'var(--c-accent-bg)',
-                  color: vocabulary.length >= 10 ? '#34d399' : '#a78bfa',
-                  border: vocabulary.length >= 10 ? '1px solid rgba(52,211,153,0.3)' : '1px solid var(--c-accent-border)',
-                }}
-              >
-                {vocabulary.length}/10
-              </Badge>
-            </CardTitle>
-            <CardDescription className="mt-1">
-              30 mins · Learn 10 new words · write your own sentence
-            </CardDescription>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 20, color: 'var(--ink)' }}>Vocabulary</span>
+            <span style={{
+              padding: '2px 8px', border: '1.5px solid var(--ink)', borderRadius: 999,
+              fontSize: 12, fontWeight: 700,
+              background: vocabulary.length >= 10 ? 'rgba(49,156,246,0.1)' : 'var(--chip)',
+              color: vocabulary.length >= 10 ? 'var(--lime)' : 'var(--ink-2)',
+            }}>
+              {vocabulary.length}/10
+            </span>
           </div>
-
-          <Button
-            onClick={handleGenerate}
-            disabled={isPending || hasWords}
-            className="flex items-center gap-2 font-semibold"
-            style={{
-              background: hasWords
-                ? 'var(--c-card-border)'
-                : 'linear-gradient(135deg, #7c3aed, #60a5fa)',
-              border: 'none',
-              boxShadow: hasWords ? 'none' : '0 0 20px rgba(124,58,237,0.35)',
-              opacity: isPending ? 0.7 : 1,
-              cursor: hasWords ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {isPending ? (
-              <><Sparkles className="w-4 h-4 animate-spin" /> Generating...</>
-            ) : hasWords ? (
-              <><Sparkles className="w-4 h-4" /> Generated</>
-            ) : (
-              <><Sparkles className="w-4 h-4" /> Generate Words</>
-            )}
-          </Button>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>30 mins · Learn 10 new words · write your own sentence</p>
         </div>
-      </CardHeader>
+        <button onClick={handleGenerate} disabled={isPending || hasWords} className={`btn-action sm ${hasWords ? 'disabled' : ''}`}>
+          {isPending
+            ? <><Sparkles style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> Generating...</>
+            : hasWords
+            ? <><Sparkles style={{ width: 14, height: 14 }} /> Generated</>
+            : <><Sparkles style={{ width: 14, height: 14 }} /> Generate Words</>}
+        </button>
+      </div>
 
-      <CardContent>
-        {vocabulary.length === 0 ? (
-          <div className="text-center py-14">
-            <div className="float text-5xl mb-4 select-none">✨</div>
-            <p className="text-sm font-medium" style={{ color: 'var(--c-text-2)' }}>
-              Click &quot;Generate Words&quot; to get 10 vocabulary words
-            </p>
-            <p className="text-xs mt-2" style={{ color: 'var(--c-text-3)' }}>
-              Set your topic in Session Info for better results
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {vocabulary.map((entry, idx) => {
-              const c = WORD_COLORS[idx % WORD_COLORS.length]
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="rounded-2xl p-3 transition-all"
-                  style={{
-                    background: 'var(--c-bg)',
-                    border: `1px solid var(--c-card-border)`,
-                    borderLeft: `4px solid ${c.accent}`,
-                  }}
-                >
-                  {/* Top row: number + word + meaning */}
-                  <div className="flex items-start gap-3 mb-2">
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                      style={{ background: c.bg, color: c.accent, border: `1px solid ${c.border}` }}
-                    >
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-base leading-tight" style={{ color: 'var(--c-text-1)' }}>
-                          {entry.word}
-                        </p>
-                        <SpeakButton word={entry.word} />
-                      </div>
-                      <p className="text-sm mt-0.5" style={{ color: 'var(--c-text-2)' }}>
-                        {entry.meaning}
-                      </p>
-                    </div>
-                  </div>
+      {vocabulary.length === 0 ? (
+        <div className="card-editorial p-10 text-center">
+          <div className="float text-5xl mb-4 select-none">✨</div>
+          <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-2)' }}>
+            Click &quot;Generate Words&quot; to get 10 vocabulary words
+          </p>
+          <p style={{ fontSize: 12, marginTop: 6, color: 'var(--ink-3)' }}>
+            Set your topic in Session Info for better results
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {vocabulary.map((entry, idx) => (
+            <div key={entry.id} className={`word ${COLORS[idx % 10]}`}>
+              <div className="word-no">{idx + 1}</div>
+              <div className="word-main">
+                <div className="w-head">
+                  <div className="w">{entry.word}</div>
+                </div>
+                <div className="m">
+                  <span className="vn">{entry.meaning}</span>
+                </div>
+                <div className="w-example">{entry.example_sentence}</div>
+                <div className="w-yours">
+                  <span className="label">Your turn ↓</span>
+                  <input
+                    placeholder={`Write a sentence using "${entry.word}"…`}
+                    defaultValue={entry.my_sentence ?? ''}
+                    onBlur={(e) => handleSentenceBlur(entry, e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="word-tools">
+                <button className="icon-btn" onClick={() => handleSpeak(entry.word)} title="Pronounce">
+                  <Volume2 style={{ width: 14, height: 14 }} />
+                </button>
+                <button className="icon-btn" title="Bookmark">
+                  <Bookmark style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+            </div>
+          ))}
 
-                  {/* Example + My sentence */}
-                  <div className="space-y-2 ml-10">
-                    <div
-                      className="rounded-xl px-3 py-2"
-                      style={{ background: c.bg, border: `1px solid ${c.border}` }}
-                    >
-                      <p className="text-xs font-semibold mb-1" style={{ color: c.accent }}>
-                        💬 Example
-                      </p>
-                      <p className="text-sm italic leading-snug" style={{ color: 'var(--c-text-2)' }}>
-                        {entry.example_sentence}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold mb-1" style={{ color: 'var(--c-text-3)' }}>
-                        ✏️ Your sentence
-                      </p>
-                      <Input
-                        placeholder="Write your own sentence..."
-                        defaultValue={entry.my_sentence ?? ''}
-                        onChange={(e) => setSentences({ ...sentences, [entry.id]: e.target.value })}
-                        onBlur={(e) => handleSentenceBlur(entry, e.target.value)}
-                        className="text-sm h-8"
-                        style={{ borderColor: entry.my_sentence ? c.accent + '60' : undefined }}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-
-            {vocabulary.length === 10 && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between pt-3"
-                style={{ borderTop: '1px solid var(--c-card-border)' }}
-              >
-                <p className="text-sm font-semibold flex items-center gap-2">
-                  <span>🎉</span>
-                  <span style={{ color: '#34d399' }}>All 10 words learned today!</span>
-                </p>
-                <Badge
-                  style={{ color: '#34d399', borderColor: 'rgba(52,211,153,0.4)', background: 'rgba(52,211,153,0.1)' }}
-                >
-                  Complete ✓
-                </Badge>
-              </motion.div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {vocabulary.length === 10 && (
+            <div className="flex items-center justify-between pt-3" style={{ borderTop: '1.5px solid var(--line-soft)' }}>
+              <p style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--lime)' }}>
+                <span>🎉</span> All 10 words learned today!
+              </p>
+              <span style={{
+                padding: '2px 10px', border: '1.5px solid var(--lime)', borderRadius: 999,
+                fontSize: 12, fontWeight: 600, color: 'var(--lime)', background: 'rgba(49,156,246,0.08)',
+              }}>
+                Complete ✓
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

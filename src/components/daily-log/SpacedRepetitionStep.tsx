@@ -31,7 +31,6 @@ export function SpacedRepetitionStep({ date, onComplete }: Props) {
   const [results, setResults] = useState<Record<string, Result>>({})
   const [finished, setFinished] = useState(false)
 
-  // Auto-complete only when genuinely no words to review (not on error)
   useEffect(() => {
     if (!isLoading && !isError && items.length === 0) {
       const t = setTimeout(onComplete, 600)
@@ -41,12 +40,9 @@ export function SpacedRepetitionStep({ date, onComplete }: Props) {
 
   if (isLoading) {
     return (
-      <div
-        className="rounded-2xl p-12 text-center"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)' }}
-      >
-        <RefreshCw className="w-8 h-8 mx-auto mb-3 text-amber-400 animate-spin" />
-        <p className="text-sm" style={{ color: 'var(--c-text-2)' }}>Loading review words...</p>
+      <div className="card-editorial p-12 text-center">
+        <RefreshCw style={{ width: 32, height: 32, margin: '0 auto 12px', color: 'var(--saffron)', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>Loading review words...</p>
       </div>
     )
   }
@@ -55,24 +51,17 @@ export function SpacedRepetitionStep({ date, onComplete }: Props) {
     const msg = (error as { message?: string })?.message ?? ''
     const tableNotFound = msg.includes('does not exist') || msg.includes('relation')
     return (
-      <div
-        className="rounded-2xl p-8 text-center space-y-3"
-        style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', backdropFilter: 'blur(16px)' }}
-      >
-        <AlertTriangle className="w-10 h-10 mx-auto text-red-400" />
-        <p className="font-semibold text-red-400">
+      <div style={{ borderRadius: 14, padding: 24, textAlign: 'center', background: 'var(--blush)', border: '1.5px solid var(--coral)' }}>
+        <AlertTriangle style={{ width: 40, height: 40, margin: '0 auto 8px', color: 'var(--coral)' }} />
+        <p style={{ fontWeight: 600, color: 'var(--coral)', marginBottom: 8 }}>
           {tableNotFound ? 'Table word_reviews not found' : 'Failed to load review data'}
         </p>
         {tableNotFound && (
-          <p className="text-xs" style={{ color: 'var(--c-text-2)' }}>
-            Run the following SQL in your <strong>Supabase SQL Editor</strong>, then reload:
-          </p>
-        )}
-        {tableNotFound && (
-          <pre
-            className="text-left text-xs rounded-xl p-4 overflow-x-auto"
-            style={{ background: 'var(--c-input-bg)', border: '1px solid var(--c-input-border)', color: 'var(--c-text-2)' }}
-          >{`create table if not exists word_reviews (
+          <>
+            <p style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>
+              Run the following SQL in your <strong>Supabase SQL Editor</strong>, then reload:
+            </p>
+            <pre style={{ textAlign: 'left', fontSize: 11, borderRadius: 10, padding: 14, background: 'var(--paper-2)', border: '1.5px solid var(--line-soft)', color: 'var(--ink-2)', overflowX: 'auto' }}>{`create table if not exists word_reviews (
   id                  uuid primary key default gen_random_uuid(),
   vocabulary_entry_id uuid not null references vocabulary_entries(id) on delete cascade,
   next_review_date    date not null,
@@ -85,27 +74,20 @@ export function SpacedRepetitionStep({ date, onComplete }: Props) {
 create index if not exists idx_word_reviews_next_review_date on word_reviews(next_review_date);
 alter table word_reviews enable row level security;
 create policy "allow all" on word_reviews for all using (true) with check (true);`}</pre>
+          </>
         )}
-        {!tableNotFound && (
-          <p className="text-xs text-red-300">{msg}</p>
-        )}
+        {!tableNotFound && <p style={{ fontSize: 12, color: 'var(--coral)' }}>{msg}</p>}
       </div>
     )
   }
 
   if (items.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="rounded-2xl p-12 text-center space-y-3"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)' }}
-      >
-        <Sparkles className="w-12 h-12 mx-auto text-amber-400" style={{ filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.5))' }} />
-        <p className="text-lg font-bold" style={{ color: 'var(--c-text-1)' }}>No words due for review today!</p>
-        <p className="text-sm" style={{ color: 'var(--c-text-2)' }}>
-          Keep learning new words and the system will schedule reviews at the right time.
-        </p>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+        className="card-editorial p-12 text-center space-y-3">
+        <Sparkles style={{ width: 48, height: 48, margin: '0 auto', color: 'var(--saffron)' }} />
+        <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 20, color: 'var(--ink)' }}>No words due for review today!</p>
+        <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>Keep learning new words and the system will schedule reviews at the right time.</p>
       </motion.div>
     )
   }
@@ -139,42 +121,32 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
 
   if (finished) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="rounded-2xl p-8 text-center space-y-5"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+        className="card-editorial p-8 text-center space-y-5">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}>
-          <Trophy className="w-16 h-16 mx-auto text-amber-400" style={{ filter: 'drop-shadow(0 0 12px rgba(251,191,36,0.5))' }} />
+          <Trophy style={{ width: 64, height: 64, margin: '0 auto', color: 'var(--saffron)' }} />
         </motion.div>
         <div>
-          <h3 className="text-2xl font-bold" style={{ color: 'var(--c-text-1)' }}>Review Complete!</h3>
-          <p className="mt-1" style={{ color: 'var(--c-text-2)' }}>
+          <h3 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 4 }}>Review Complete!</h3>
+          <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>
             You remembered{' '}
-            <span className="text-emerald-500 font-bold">{knownCount}</span>
-            {' '}out of{' '}<span className="font-bold" style={{ color: 'var(--c-text-1)' }}>{total}</span> words
+            <span style={{ color: 'var(--lime)', fontWeight: 700 }}>{knownCount}</span>
+            {' '}out of{' '}
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{total}</span> words
           </p>
         </div>
         {knownCount < total && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-xl p-4 text-left"
-            style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)' }}
-          >
-            <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-3">
-              Review again tomorrow
-            </p>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            style={{ padding: '12px 16px', background: 'var(--blush)', border: '1.5px solid var(--coral)', borderRadius: 12, textAlign: 'left' }}>
+            <p className="caps" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 10 }}>Review again tomorrow</p>
             <div className="flex flex-wrap gap-2">
               {items
                 .filter((item) => results[item.reviewId] === 'skip')
                 .map((item) => (
-                  <div key={item.reviewId} className="rounded-lg px-3 py-1.5 text-sm" style={{ background: 'var(--c-bg)', border: '1px solid var(--c-card-border)' }}>
-                    <span className="font-semibold" style={{ color: 'var(--c-text-1)' }}>{item.entry.word}</span>
-                    <span className="mx-1" style={{ color: 'var(--c-text-3)' }}>—</span>
-                    <span style={{ color: 'var(--c-text-2)' }}>{item.entry.meaning}</span>
+                  <div key={item.reviewId} style={{ padding: '4px 10px', border: '1.5px solid var(--line-soft)', borderRadius: 8, background: 'var(--paper)', fontSize: 13 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{item.entry.word}</span>
+                    <span style={{ margin: '0 4px', color: 'var(--ink-3)' }}>—</span>
+                    <span style={{ color: 'var(--ink-2)' }}>{item.entry.meaning}</span>
                   </div>
                 ))}
             </div>
@@ -194,30 +166,26 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-amber-500" />
-          <span className="font-semibold" style={{ color: 'var(--c-text-1)' }}>Review</span>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}
-          >
+          <RefreshCw style={{ width: 18, height: 18, color: 'var(--saffron)' }} />
+          <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>Review</span>
+          <span style={{ padding: '2px 8px', border: '1.5px solid rgba(255,217,61,0.4)', borderRadius: 999, fontSize: 12, fontWeight: 600, color: 'var(--saffron)', background: 'rgba(255,217,61,0.1)' }}>
             {currentIdx + 1}/{total}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-emerald-500 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> {knownCount}
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1" style={{ fontSize: 13, color: 'var(--lime)' }}>
+            <CheckCircle2 style={{ width: 13, height: 13 }} /> {knownCount}
           </span>
-          <span className="text-orange-500 flex items-center gap-1">
-            <XCircle className="w-3.5 h-3.5" /> {currentIdx - knownCount}
+          <span className="flex items-center gap-1" style={{ fontSize: 13, color: 'var(--coral)' }}>
+            <XCircle style={{ width: 13, height: 13 }} /> {currentIdx - knownCount}
           </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--c-card-border)' }}>
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--line-soft)', overflow: 'hidden' }}>
         <motion.div
-          className="h-full rounded-full"
-          style={{ background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }}
+          style={{ height: '100%', borderRadius: 999, background: 'var(--saffron)' }}
           animate={{ width: `${progress}%` }}
           transition={{ type: 'spring', stiffness: 120, damping: 20 }}
         />
@@ -225,14 +193,10 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
 
       {/* Card */}
       <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIdx}
-          initial={{ opacity: 0, x: 60 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -60 }}
+        <motion.div key={currentIdx}
+          initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          style={{ perspective: 1000 }}
-        >
+          style={{ perspective: 1000 }}>
           <motion.div
             onClick={() => setFlipped(!flipped)}
             animate={{ rotateY: flipped ? 180 : 0 }}
@@ -240,66 +204,39 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
             style={{ transformStyle: 'preserve-3d', cursor: 'pointer', position: 'relative', minHeight: 320 }}
           >
             {/* Front */}
-            <div
-              className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3 p-10 select-none"
-              style={{
-                backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-                background: 'var(--c-card)', border: '1px solid var(--c-card-border)',
-                backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)',
-              }}
-            >
-              <span
-                className="absolute top-4 right-4 text-xs px-2.5 py-1 rounded-full"
-                style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1px solid rgba(245,158,11,0.2)' }}
-              >
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-10 select-none"
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', background: 'var(--paper-2)', border: '1.5px solid var(--ink)', borderRadius: 14, boxShadow: 'var(--shadow)' }}>
+              <span style={{ position: 'absolute', top: 14, right: 14, padding: '3px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'rgba(255,217,61,0.1)', border: '1px solid rgba(255,217,61,0.3)', color: 'var(--saffron)' }}>
                 Learned {learnedDate}
               </span>
-              <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest">Tap to reveal</p>
+              <p className="caps" style={{ fontSize: 10, color: 'var(--saffron)' }}>Tap to reveal</p>
               <div className="flex items-center gap-3">
-                <p className="text-5xl font-bold tracking-tight text-center" style={{ color: 'var(--c-text-1)' }}>
-                  {current.entry.word}
-                </p>
+                <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 52, color: 'var(--ink)', textAlign: 'center' }}>{current.entry.word}</p>
                 <SpeakButton word={current.entry.word} size="md" />
               </div>
-              <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>Review #{current.reviewCount + 1}</p>
-              <ChevronRight className="w-4 h-4 rotate-90 opacity-40" style={{ color: 'var(--c-text-3)' }} />
+              <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Review #{current.reviewCount + 1}</p>
+              <ChevronRight style={{ width: 16, height: 16, transform: 'rotate(90deg)', opacity: 0.4, color: 'var(--ink-3)' }} />
             </div>
 
             {/* Back */}
-            <div
-              className="absolute inset-0 rounded-2xl flex flex-col justify-center gap-3 px-6 py-6 select-none"
-              style={{
-                backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-                background: 'var(--c-card)', border: '1px solid var(--c-card-border)',
-                backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)',
-              }}
-            >
+            <div className="absolute inset-0 flex flex-col justify-center gap-3 px-6 py-6 select-none"
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'var(--paper-2)', border: '1.5px solid var(--ink)', borderRadius: 14, boxShadow: 'var(--shadow)' }}>
               <div className="flex items-center justify-center gap-2">
-                <p className="text-2xl font-bold text-center" style={{ color: 'var(--c-text-1)' }}>{current.entry.word}</p>
+                <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 28, color: 'var(--ink)', textAlign: 'center' }}>{current.entry.word}</p>
                 <SpeakButton word={current.entry.word} size="md" />
               </div>
-              <div
-                className="rounded-xl px-4 py-3 text-center"
-                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}
-              >
-                <p className="text-xs text-amber-500 font-medium mb-1">Meaning</p>
-                <p className="text-base font-semibold" style={{ color: 'var(--c-text-1)' }}>{current.entry.meaning}</p>
+              <div style={{ borderRadius: 10, padding: '10px 14px', textAlign: 'center', background: 'rgba(255,217,61,0.1)', border: '1px solid rgba(255,217,61,0.25)' }}>
+                <p className="caps" style={{ fontSize: 9, color: 'var(--saffron)', marginBottom: 4 }}>Meaning</p>
+                <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{current.entry.meaning}</p>
               </div>
-              <div
-                className="rounded-xl px-4 py-3"
-                style={{ background: 'var(--c-blue-bg)', border: '1px solid var(--c-blue-border)' }}
-              >
-                <p className="text-xs text-cyan-500 font-medium mb-1">Example</p>
-                <p className="text-sm italic leading-relaxed" style={{ color: 'var(--c-text-2)' }}>{current.entry.example_sentence}</p>
+              <div style={{ borderRadius: 10, padding: '10px 14px', background: 'var(--sky)', border: '1px solid var(--line-soft)' }}>
+                <p className="caps" style={{ fontSize: 9, color: 'var(--lime)', marginBottom: 4 }}>Example</p>
+                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--ink-2)' }}>{current.entry.example_sentence}</p>
               </div>
               {current.entry.my_sentence && (
-                <div
-                  className="rounded-xl px-4 py-3"
-                  style={{ background: 'var(--c-green-bg)', border: '1px solid var(--c-green-border)' }}
-                >
-                  <p className="text-xs text-emerald-500 font-medium mb-1">Your sentence</p>
-                  <p className="text-sm italic leading-relaxed" style={{ color: 'var(--c-text-2)' }}>{current.entry.my_sentence}</p>
+                <div style={{ borderRadius: 10, padding: '10px 14px', background: 'rgba(125,219,168,0.12)', border: '1px solid rgba(125,219,168,0.3)' }}>
+                  <p className="caps" style={{ fontSize: 9, color: 'var(--mint)', marginBottom: 4 }}>Your sentence</p>
+                  <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--ink-2)' }}>{current.entry.my_sentence}</p>
                 </div>
               )}
             </div>
@@ -311,43 +248,35 @@ create policy "allow all" on word_reviews for all using (true) with check (true)
       <AnimatePresence>
         {flipped && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             className="space-y-3"
           >
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => next('skip')}
-                className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-orange-500 transition-all active:scale-95"
-                style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.25)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(251,146,60,0.15)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(251,146,60,0.08)')}
-              >
-                <XCircle className="w-5 h-5" /> Forgot
+              <button onClick={() => next('skip')}
+                className="flex items-center justify-center gap-2 py-3"
+                style={{ borderRadius: 12, fontWeight: 600, color: 'var(--coral)', background: 'var(--blush)', border: '1.5px solid var(--coral)', boxShadow: 'var(--shadow-sm)', transition: 'all 0.08s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
+                <XCircle style={{ width: 18, height: 18 }} /> Forgot
               </button>
-              <button
-                onClick={() => next('know')}
-                className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all active:scale-95"
-                style={{ background: 'var(--c-green-bg)', border: '1px solid var(--c-green-border)', color: 'var(--c-text-1)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(52,211,153,0.18)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'var(--c-green-bg)')}
-              >
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Got it!
+              <button onClick={() => next('know')}
+                className="flex items-center justify-center gap-2 py-3"
+                style={{ borderRadius: 12, fontWeight: 600, color: '#fff', background: 'var(--lime)', border: '1.5px solid var(--ink)', boxShadow: 'var(--shadow-sm)', transition: 'all 0.08s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
+                <CheckCircle2 style={{ width: 18, height: 18 }} /> Got it!
               </button>
             </div>
-            <p className="text-center text-xs" style={{ color: 'var(--c-text-3)' }}>
-              Got it → next review in <span className="font-semibold text-amber-500">{nextInterval}</span>
+            <p className="text-center" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+              Got it → next review in <span style={{ fontWeight: 600, color: 'var(--saffron)' }}>{nextInterval}</span>
             </p>
           </motion.div>
         )}
       </AnimatePresence>
 
       {!flipped && (
-        <p className="text-center text-xs" style={{ color: 'var(--c-text-3)' }}>
-          Tap card to reveal meaning
-        </p>
+        <p className="text-center" style={{ fontSize: 12, color: 'var(--ink-3)' }}>Tap card to reveal meaning</p>
       )}
     </div>
   )

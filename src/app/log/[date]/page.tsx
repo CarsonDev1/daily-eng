@@ -3,284 +3,68 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format, parseISO, isValid } from 'date-fns'
-import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import {
   useDailyLog, useUpsertDailyLog,
   useVocabularyEntries, useWritingSession, useUpsertProgressDay,
 } from '@/hooks/useDailyLog'
-import { VocabularyStep }        from '@/components/daily-log/VocabularyStep'
-import { WritingStep }            from '@/components/daily-log/WritingStep'
-import { ReviewStep }             from '@/components/daily-log/ReviewStep'
-import { FlashcardStep }          from '@/components/daily-log/FlashcardStep'
-import { SpacedRepetitionStep }   from '@/components/daily-log/SpacedRepetitionStep'
-import { QuizStep }               from '@/components/daily-log/QuizStep'
-import { AnalyzeStep }            from '@/components/daily-log/AnalyzeStep'
-import { Skeleton }       from '@/components/ui/skeleton'
-import { DailyLog }       from '@/lib/supabase'
+import { VocabularyStep }      from '@/components/daily-log/VocabularyStep'
+import { WritingStep }          from '@/components/daily-log/WritingStep'
+import { ReviewStep }           from '@/components/daily-log/ReviewStep'
+import { FlashcardStep }        from '@/components/daily-log/FlashcardStep'
+import { SpacedRepetitionStep } from '@/components/daily-log/SpacedRepetitionStep'
+import { QuizStep }             from '@/components/daily-log/QuizStep'
+import { AnalyzeStep }          from '@/components/daily-log/AnalyzeStep'
+import { Skeleton }             from '@/components/ui/skeleton'
+import { DailyLog }             from '@/lib/supabase'
 import {
   BookOpen, BrainCircuit, PenLine,
-  ClipboardCheck, Clock, ChevronRight,
-  CheckCircle2, Circle, RefreshCw, Target, Languages,
+  ClipboardCheck, RefreshCw, Target, Languages,
 } from 'lucide-react'
 
 // ─── Steps config ─────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 'vocabulary',  label: 'Vocabulary',  sub: '10 new words',       icon: BookOpen,       emoji: '📚', color: '#60a5fa', num: 1 },
-  { id: 'spaced-rep',  label: 'Review',      sub: 'Spaced repetition',  icon: RefreshCw,      emoji: '🔄', color: '#f59e0b', num: 2 },
-  { id: 'flashcards',  label: 'Flashcards',  sub: 'Flip & memorise',    icon: BrainCircuit,   emoji: '🧠', color: '#a78bfa', num: 3 },
-  { id: 'quiz',        label: 'Quiz',        sub: 'MC + fill-in-blank', icon: Target,         emoji: '🎯', color: '#ec4899', num: 4 },
-  { id: 'writing',     label: 'Writing',     sub: '5–8 sentences',      icon: PenLine,        emoji: '✍️', color: '#34d399', num: 5 },
-  { id: 'analyze',     label: 'Analyze',     sub: 'Fix "Việt hóa"',     icon: Languages,      emoji: '🔍', color: '#06b6d4', num: 6 },
-  { id: 'review',      label: 'Review',      sub: 'Self-reflect',       icon: ClipboardCheck, emoji: '⭐', color: '#fb923c', num: 7 },
+  { id: 'vocabulary',  label: 'Vocabulary',    sub: '10 new words',       icon: BookOpen,       num: '01' },
+  { id: 'spaced-rep',  label: 'Spaced Review', sub: 'Yesterday & beyond', icon: RefreshCw,      num: '02' },
+  { id: 'flashcards',  label: 'Flashcards',    sub: 'Flip & memorise',    icon: BrainCircuit,   num: '03' },
+  { id: 'quiz',        label: 'Quiz',          sub: 'MC + fill-in-blank', icon: Target,         num: '04' },
+  { id: 'writing',     label: 'Writing',       sub: '5–8 sentences',      icon: PenLine,        num: '05' },
+  { id: 'analyze',     label: 'Analyze',       sub: 'Fix "Việt hóa"',     icon: Languages,      num: '06' },
+  { id: 'review',      label: 'Reflect',       sub: 'End of session',     icon: ClipboardCheck, num: '07' },
 ] as const
 
 type StepId = typeof STEPS[number]['id']
+type DoneMap = Record<StepId, boolean>
 
-// ─── Animation variants ───────────────────────────────────────────────────────
+// ─── Inline SVG icons ─────────────────────────────────────────────────────────
 
-const slideIn: Variants = {
-  hidden: { opacity: 0, x: 24 },
-  show:   { opacity: 1, x: 0,  transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
-  exit:   { opacity: 0, x: -24, transition: { duration: 0.2 } },
-}
-
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
-
-function Sidebar({
-  activeStep, setActiveStep,
-  log, vocabCount, writingDone, journalDone, flashcardsDone, spacedRepDone, quizDone,
-  onUpdateLog,
-}: {
-  activeStep: StepId
-  setActiveStep: (s: StepId) => void
-  date: string
-  log: DailyLog | null | undefined
-  vocabCount: number
-  writingDone: boolean
-  journalDone: boolean
-  flashcardsDone: boolean
-  spacedRepDone: boolean
-  quizDone: boolean
-  onUpdateLog: (f: Partial<DailyLog>) => void
-}) {
-  const checklist = {
-    learned_10_words:    vocabCount >= 10,
-    reviewed_old_words:  spacedRepDone,
-    reviewed_flashcards: flashcardsDone,
-    quiz_done:           quizDone,
-    finished_writing:    writingDone,
-    wrote_journal:       journalDone,
-  }
-  const completedCount = Object.values(checklist).filter(Boolean).length
-  const S = { background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)' }
-
-  const checklistItems = [
-    { key: 'learned_10_words',    label: '10 words learned',   done: checklist.learned_10_words,    emoji: '📚', color: '#60a5fa' },
-    { key: 'reviewed_old_words',  label: 'Spaced review',      done: checklist.reviewed_old_words,  emoji: '🔄', color: '#f59e0b' },
-    { key: 'reviewed_flashcards', label: 'Flashcards done',    done: checklist.reviewed_flashcards, emoji: '🧠', color: '#a78bfa' },
-    { key: 'quiz_done',           label: 'Quiz passed',        done: checklist.quiz_done,           emoji: '🎯', color: '#ec4899' },
-    { key: 'finished_writing',    label: 'Writing done',       done: checklist.finished_writing,    emoji: '✍️', color: '#34d399' },
-    { key: 'wrote_journal',       label: 'Mini journal',       done: checklist.wrote_journal,       emoji: '⭐', color: '#fb923c' },
-  ]
-
+function CheckIcon({ size = 12 }: { size?: number }) {
   return (
-    <aside className="w-56 shrink-0 sticky top-20 self-start space-y-3">
-
-      {/* Progress */}
-      <div className="rounded-2xl p-4" style={S}>
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold" style={{ color: 'var(--c-text-2)' }}>
-            Week {log?.week_number ?? 1}
-          </span>
-          <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{
-              background: completedCount === 6 ? 'rgba(52,211,153,0.15)' : 'var(--c-accent-bg)',
-              color: completedCount === 6 ? '#34d399' : '#a78bfa',
-              border: completedCount === 6 ? '1px solid rgba(52,211,153,0.3)' : '1px solid var(--c-accent-border)',
-            }}
-          >
-            {completedCount}/5 {completedCount === 6 ? '🔥' : ''}
-          </span>
-        </div>
-        {/* Animated progress bar */}
-        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--c-input-bg)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, #7c3aed, #60a5fa, #a78bfa, #60a5fa, #7c3aed)',
-              backgroundSize: '200% 100%',
-            }}
-            animate={{
-              width: `${(completedCount / 6) * 100}%`,
-              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-            }}
-            transition={{
-              width: { type: 'spring', stiffness: 120, damping: 20 },
-              backgroundPosition: { duration: 3, repeat: Infinity, ease: 'linear' },
-            }}
-          />
-        </div>
-        <div className="flex justify-between mt-2">
-          {STEPS.map((s) => (
-            <div
-              key={s.id}
-              className="w-1.5 h-1.5 rounded-full transition-all duration-300"
-              style={{
-                background: (s.id === 'vocabulary'  ? checklist.learned_10_words
-                  : s.id === 'spaced-rep'  ? checklist.reviewed_old_words
-                  : s.id === 'flashcards'  ? checklist.reviewed_flashcards
-                  : s.id === 'quiz'        ? checklist.quiz_done
-                  : s.id === 'writing'     ? checklist.finished_writing
-                  : s.id === 'analyze'     ? false
-                  : checklist.wrote_journal)
-                  ? s.color : 'var(--c-input-border)',
-                boxShadow: (s.id === 'vocabulary'  ? checklist.learned_10_words
-                  : s.id === 'spaced-rep'  ? checklist.reviewed_old_words
-                  : s.id === 'flashcards'  ? checklist.reviewed_flashcards
-                  : s.id === 'quiz'        ? checklist.quiz_done
-                  : s.id === 'writing'     ? checklist.finished_writing
-                  : s.id === 'analyze'     ? false
-                  : checklist.wrote_journal)
-                  ? `0 0 6px ${s.color}` : 'none',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Step navigation */}
-      <nav className="rounded-2xl p-2 space-y-1" style={S}>
-        {STEPS.map((step) => {
-          const isActive = activeStep === step.id
-          const Icon = step.icon
-          const done = step.id === 'vocabulary'  ? checklist.learned_10_words
-                     : step.id === 'spaced-rep'  ? checklist.reviewed_old_words
-                     : step.id === 'flashcards'  ? checklist.reviewed_flashcards
-                     : step.id === 'quiz'        ? checklist.quiz_done
-                     : step.id === 'writing'     ? checklist.finished_writing
-                     : step.id === 'analyze'     ? false
-                     : checklist.wrote_journal
-
-          return (
-            <button
-              key={step.id}
-              onClick={() => setActiveStep(step.id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200"
-              style={isActive ? {
-                background: `${step.color}14`,
-                border: `1px solid ${step.color}35`,
-                boxShadow: `0 0 14px ${step.color}18`,
-              } : {
-                background: 'transparent',
-                border: '1px solid transparent',
-              }}
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all text-base"
-                style={isActive ? {
-                  background: `${step.color}20`,
-                  border: `1px solid ${step.color}40`,
-                  boxShadow: `0 0 10px ${step.color}25`,
-                } : {
-                  background: 'var(--c-input-bg)',
-                  border: '1px solid var(--c-input-border)',
-                }}
-              >
-                {isActive ? step.emoji : <Icon className="w-4 h-4" style={{ color: 'var(--c-text-3)' }} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-none mb-0.5 truncate"
-                  style={{ color: isActive ? step.color : 'var(--c-text-2)' }}>
-                  {step.label}
-                </p>
-                <p className="text-xs truncate" style={{ color: 'var(--c-text-3)' }}>{step.sub}</p>
-              </div>
-              {done
-                ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                : isActive
-                  ? <ChevronRight className="w-4 h-4 shrink-0" style={{ color: step.color }} />
-                  : <Circle className="w-4 h-4 shrink-0" style={{ color: 'var(--c-text-3)', opacity: 0.4 }} />
-              }
-            </button>
-          )
-        })}
-      </nav>
-
-      {/* Session info */}
-      <div className="rounded-2xl p-4 space-y-3" style={S}>
-        <p className="text-xs font-semibold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--c-text-3)' }}>
-          <Clock className="w-3 h-3" /> Session
-        </p>
-        <CompactField label="Topic" value={log?.topic ?? ''} placeholder="e.g. Travel..."
-          onBlur={(v) => onUpdateLog({ topic: v || null })} />
-        <div className="grid grid-cols-2 gap-2">
-          <CompactField label="Start" value={log?.started_at ?? ''} type="time" onBlur={(v) => onUpdateLog({ started_at: v || null })} />
-          <CompactField label="End"   value={log?.finished_at ?? ''} type="time" onBlur={(v) => onUpdateLog({ finished_at: v || null })} />
-        </div>
-        <div>
-          <p className="text-xs mb-1.5" style={{ color: 'var(--c-text-3)' }}>Week</p>
-          <div className="flex gap-1">
-            {[1,2,3,4].map((w) => {
-              const active = (log?.week_number ?? 1) === w
-              return (
-                <button key={w} onClick={() => onUpdateLog({ week_number: w })}
-                  className="flex-1 py-1 text-xs rounded-lg font-bold transition-all"
-                  style={{
-                    background: active ? 'var(--c-accent-bg)' : 'var(--c-input-bg)',
-                    color: active ? '#a78bfa' : 'var(--c-text-2)',
-                    border: active ? '1px solid var(--c-accent-border)' : '1px solid var(--c-input-border)',
-                    boxShadow: active ? '0 0 8px rgba(167,139,250,0.2)' : 'none',
-                  }}>
-                  {w}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Tonight's checklist */}
-      <div className="rounded-2xl p-4 space-y-2" style={S}>
-        <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--c-text-3)' }}>
-          🌙 Tonight
-        </p>
-        {checklistItems.map(({ key, label, done, emoji, color }) => (
-          <div key={key} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-all"
-            style={done ? { background: `${color}10`, border: `1px solid ${color}25` } : { border: '1px solid transparent' }}>
-            <span className="text-sm shrink-0">{emoji}</span>
-            <span
-              className="text-xs flex-1 transition-colors"
-              style={{
-                color: done ? color : 'var(--c-text-2)',
-                textDecoration: done ? 'line-through' : 'none',
-                opacity: done ? 0.85 : 1,
-              }}
-            >
-              {label}
-            </span>
-            {done && (
-              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 5px ${color}` }} />
-            )}
-          </div>
-        ))}
-        {completedCount === 6 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mt-2 pt-3 text-center"
-            style={{ borderTop: '1px solid var(--c-card-border)' }}
-          >
-            <span className="text-xs text-emerald-500 font-bold">All done! Keep the streak! 🔥</span>
-          </motion.div>
-        )}
-      </div>
-    </aside>
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+      style={{ width: size, height: size }}
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   )
 }
 
-// ─── Compact text field ───────────────────────────────────────────────────────
+function ArrowIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      style={{ width: 16, height: 16 }}
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  )
+}
+
+// ─── Compact field ────────────────────────────────────────────────────────────
 
 function CompactField({
   label, value, placeholder = '', type = 'text', onBlur,
@@ -290,21 +74,309 @@ function CompactField({
 }) {
   return (
     <div>
-      <p className="text-xs mb-1" style={{ color: 'var(--c-text-3)' }}>{label}</p>
+      <div className="caps" style={{ color: 'var(--ink-3)', marginBottom: 6 }}>{label}</div>
       <input
         type={type}
         defaultValue={value}
         placeholder={placeholder}
         onBlur={(e) => onBlur(e.target.value)}
-        className="w-full rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors focus:ring-1 focus:ring-violet-500/30"
         style={{
-          background: 'var(--c-input-bg)',
-          border: '1px solid var(--c-input-border)',
-          color: 'var(--c-text-1)',
+          width: '100%', padding: '8px 10px',
+          border: '1.5px solid var(--ink)',
+          borderRadius: 8,
+          background: 'var(--paper)',
+          color: 'var(--ink)',
+          fontFamily: 'inherit',
+          fontSize: 14, fontWeight: 500,
+          outline: 'none',
         }}
       />
     </div>
   )
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar({
+  activeStep, setActiveStep,
+  log, doneMap, completedCount,
+  onUpdateLog,
+}: {
+  activeStep: StepId
+  setActiveStep: (s: StepId) => void
+  log: DailyLog | null | undefined
+  doneMap: DoneMap
+  completedCount: number
+  onUpdateLog: (f: Partial<DailyLog>) => void
+}) {
+  return (
+    <aside style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Progress hero */}
+      <div style={{
+        padding: '18px 20px 20px',
+        background: 'var(--ink)', color: 'var(--paper)',
+        border: '1.5px solid var(--ink)',
+        borderRadius: 14, boxShadow: 'var(--shadow)',
+      }}>
+        <div className="caps" style={{ opacity: 0.7 }}>
+          Week {log?.week_number ?? 1} · Session today
+        </div>
+        <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 52, lineHeight: 1, margin: '10px 0 4px' }}>
+          <em style={{ fontStyle: 'italic', color: 'var(--lime)' }}>{completedCount}</em>
+          <span style={{ fontSize: 24, opacity: 0.5 }}>/{STEPS.length}</span>
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.7 }}>stations completed today</div>
+        <div style={{ display: 'flex', gap: 5, marginTop: 16 }}>
+          {STEPS.map((s) => (
+            <div
+              key={s.id}
+              style={{
+                flex: 1, height: 10, borderRadius: 999,
+                background: doneMap[s.id] ? 'var(--lime)' : 'rgba(255,255,255,0.14)',
+                border: doneMap[s.id] ? '1.5px solid var(--lime)' : '1.5px solid transparent',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Route map */}
+      <div style={{
+        background: 'var(--paper-2)',
+        border: '1.5px solid var(--ink)',
+        borderRadius: 14, boxShadow: 'var(--shadow)',
+        padding: 20,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <span className="caps" style={{ color: 'var(--ink-3)' }}>Today&apos;s route</span>
+          <span style={{
+            padding: '4px 10px',
+            border: '1.5px solid var(--ink)', borderRadius: 999,
+            fontSize: 12, fontWeight: 600,
+            background: 'var(--lime)', color: '#fff',
+          }}>
+            {completedCount}/{STEPS.length}
+          </span>
+        </div>
+
+        <div style={{ position: 'relative', paddingLeft: 4 }}>
+          {/* Vertical connector line */}
+          <div style={{
+            position: 'absolute', left: 17, top: 14, bottom: 14,
+            width: 2.5, background: 'var(--ink)', borderRadius: 2, zIndex: 0,
+          }} />
+
+          {STEPS.map((s) => {
+            const done   = doneMap[s.id]
+            const active = activeStep === s.id
+            return (
+              <div
+                key={s.id}
+                className={`route-step ${done ? 'done' : ''} ${active ? 'active' : ''}`}
+                onClick={() => setActiveStep(s.id)}
+              >
+                <div className="route-step-node">
+                  {done ? <CheckIcon /> : parseInt(s.num)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: 600, fontSize: 14, lineHeight: 1.2,
+                    color: done ? 'var(--ink-3)' : 'var(--ink)',
+                    textDecoration: done ? 'line-through' : 'none',
+                    textDecorationThickness: '1.5px',
+                  }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{s.sub}</div>
+                </div>
+                <div style={{
+                  width: 20, height: 20,
+                  border: '1.5px solid var(--ink)', borderRadius: 6,
+                  background: done ? 'var(--ink)' : 'var(--paper-2)',
+                  flexShrink: 0, display: 'grid', placeItems: 'center',
+                  color: 'var(--paper)',
+                }}>
+                  {done && <CheckIcon />}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Session ticket */}
+      <div style={{
+        background: 'var(--paper-2)',
+        border: '1.5px solid var(--ink)',
+        borderRadius: 14, boxShadow: 'var(--shadow)',
+        overflow: 'hidden', position: 'relative',
+      }}>
+        <div style={{ position: 'absolute', width: 14, height: 14, background: 'var(--paper)', border: '1.5px solid var(--ink)', borderRadius: '50%', left: -8, top: 'calc(50% - 7px)' }} />
+        <div style={{ position: 'absolute', width: 14, height: 14, background: 'var(--paper)', border: '1.5px solid var(--ink)', borderRadius: '50%', right: -8, top: 'calc(50% - 7px)' }} />
+        <div style={{
+          background: 'var(--ink)', color: 'var(--paper)',
+          padding: '10px 18px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
+        }}>
+          <span>Session Ticket</span>
+          <span style={{ fontFamily: 'var(--font-mono, monospace)', opacity: 0.7 }}>
+            № 0420 · W{log?.week_number ?? 1}
+          </span>
+        </div>
+        <div style={{ padding: '16px 20px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <CompactField
+            label="Topic today"
+            value={log?.topic ?? ''}
+            placeholder="e.g. Travel..."
+            onBlur={(v) => onUpdateLog({ topic: v || null })}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <CompactField label="Start" value={log?.started_at ?? ''} type="time" onBlur={(v) => onUpdateLog({ started_at: v || null })} />
+            <CompactField label="End"   value={log?.finished_at ?? ''} type="time" onBlur={(v) => onUpdateLog({ finished_at: v || null })} />
+          </div>
+          <div>
+            <div className="caps" style={{ color: 'var(--ink-3)', marginBottom: 6 }}>Week of sprint</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[1,2,3,4].map((w) => {
+                const active = (log?.week_number ?? 1) === w
+                return (
+                  <button
+                    key={w}
+                    onClick={() => onUpdateLog({ week_number: w })}
+                    style={{
+                      flex: 1, padding: '8px 0',
+                      border: '1.5px solid var(--ink)', borderRadius: 8,
+                      background: active ? 'var(--saffron)' : 'var(--paper)',
+                      boxShadow: active ? 'var(--shadow-sm)' : 'none',
+                      fontFamily: 'var(--font-serif, serif)',
+                      fontSize: 18, lineHeight: 1,
+                      cursor: 'pointer', color: 'var(--ink)',
+                    }}
+                  >
+                    {w}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+// ─── Right Rail ───────────────────────────────────────────────────────────────
+
+function RightRail({ doneMap }: { doneMap: DoneMap }) {
+  const items: { key: StepId; label: string; time: string }[] = [
+    { key: 'vocabulary', label: '10 words learned',   time: '30m' },
+    { key: 'spaced-rep', label: 'Spaced review done', time: '10m' },
+    { key: 'flashcards', label: 'Flashcards flipped', time: '10m' },
+    { key: 'quiz',       label: 'Quiz passed',        time: '10m' },
+    { key: 'writing',    label: 'Writing complete',   time: '20m' },
+    { key: 'review',     label: 'Reflection written', time: '5m'  },
+  ]
+  const doneCount = items.filter((i) => doneMap[i.key]).length
+
+  return (
+    <aside style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Tonight checklist */}
+      <div style={{
+        background: 'var(--paper-2)',
+        border: '1.5px solid var(--ink)',
+        borderRadius: 14, boxShadow: 'var(--shadow)',
+        padding: 20,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <div className="caps" style={{ color: 'var(--ink-3)' }}>Tonight</div>
+            <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 26, marginTop: 2, lineHeight: 1 }}>
+              Checklist <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>moon</em>
+            </div>
+          </div>
+          <span style={{
+            padding: '4px 10px',
+            border: '1.5px solid var(--ink)', borderRadius: 999,
+            fontSize: 12, fontWeight: 600,
+            background: 'var(--coral)', color: '#fff',
+          }}>
+            {doneCount}/6
+          </span>
+        </div>
+
+        <div>
+          {items.map((it) => {
+            const done = doneMap[it.key]
+            return (
+              <div key={it.key} className={`tonight-item ${done ? 'done' : ''}`}>
+                <div className="tonight-item-bullet">
+                  {done && <CheckIcon />}
+                </div>
+                <span style={{
+                  fontSize: 13, flex: 1,
+                  color: done ? 'var(--ink-3)' : 'var(--ink)',
+                  textDecoration: done ? 'line-through' : 'none',
+                }}>
+                  {it.label}
+                </span>
+                <span style={{
+                  fontSize: 10, padding: '2px 7px',
+                  border: '1.5px solid var(--ink)', borderRadius: 999,
+                  background: 'var(--paper-2)', fontWeight: 600,
+                }}>
+                  {it.time}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+
+        {doneCount === items.length && (
+          <div style={{
+            marginTop: 14, padding: '12px 14px',
+            background: 'var(--mint)',
+            border: '1.5px solid var(--ink)', borderRadius: 10,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 22, lineHeight: 1.1 }}>
+              Keep the <em style={{ fontStyle: 'italic' }}>streak</em>.
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 4 }}>Show up again tomorrow ▶</div>
+          </div>
+        )}
+      </div>
+
+      {/* Coach's note */}
+      <div style={{
+        background: 'var(--ink)', color: 'var(--paper)',
+        border: '1.5px solid var(--ink)',
+        borderRadius: 14, boxShadow: 'var(--shadow)',
+        padding: 20,
+      }}>
+        <div className="caps" style={{ color: 'var(--saffron)' }}>Coach&apos;s note</div>
+        <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 22, lineHeight: 1.2, marginTop: 8 }}>
+          Don&apos;t aim for{' '}
+          <em style={{ fontStyle: 'italic', color: 'var(--lime)' }}>perfect</em>.
+          {' '}Aim for{' '}
+          <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>done</em>.
+        </div>
+        <p style={{ fontSize: 13, opacity: 0.72, marginTop: 10, lineHeight: 1.5 }}>
+          A messy 5-sentence paragraph beats a flawless one you never finish. Write, then fix.
+        </p>
+      </div>
+    </aside>
+  )
+}
+
+// ─── Animation ────────────────────────────────────────────────────────────────
+
+const slideIn: Variants = {
+  hidden: { opacity: 0, x: 24 },
+  show:   { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
+  exit:   { opacity: 0, x: -24, transition: { duration: 0.2 } },
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -320,55 +392,60 @@ export default function LogPage() {
   const upsertProgressDay = useUpsertProgressDay()
 
   const parsedDate = parseISO(date)
-  const displayDate = isValid(parsedDate) ? format(parsedDate, 'EEEE, MMMM d') : date
-  const displayYear = isValid(parsedDate) ? format(parsedDate, 'yyyy') : ''
+  const dow = isValid(parsedDate) ? format(parsedDate, 'EEEE') : ''
+  const mo  = isValid(parsedDate) ? format(parsedDate, 'MMMM') : ''
+  const day = isValid(parsedDate) ? format(parsedDate, 'd') : ''
 
   const checklist: DailyLog['checklist'] = log?.checklist ?? {
     learned_10_words: false, finished_writing: false,
     wrote_journal: false, reviewed_flashcards: false, reviewed_old_words: false, quiz_done: false,
   }
 
-  const handleSpacedRepComplete = () => {
+  const doneMap: DoneMap = {
+    'vocabulary': vocabulary.length >= 10,
+    'spaced-rep': checklist.reviewed_old_words ?? false,
+    'flashcards': checklist.reviewed_flashcards,
+    'quiz':       checklist.quiz_done ?? false,
+    'writing':    !!writing?.content,
+    'analyze':    false,
+    'review':     !!writing?.mini_journal,
+  }
+  const completedCount = Object.values(doneMap).filter(Boolean).length
+
+  const handleSpacedRepComplete = () =>
     upsertLog.mutate({ date, checklist: { ...checklist, reviewed_old_words: true }, week_number: log?.week_number ?? 1 })
-  }
 
-  const handleFlashcardComplete = () => {
+  const handleFlashcardComplete = () =>
     upsertLog.mutate({ date, checklist: { ...checklist, reviewed_flashcards: true }, week_number: log?.week_number ?? 1 })
-  }
 
-  const handleQuizComplete = () => {
+  const handleQuizComplete = () =>
     upsertLog.mutate({ date, checklist: { ...checklist, quiz_done: true }, week_number: log?.week_number ?? 1 })
-  }
 
-  // Auto-upsert progress_day whenever the session becomes complete
-  const sessionDone = vocabulary.length >= 10 && checklist.reviewed_flashcards &&
-                      !!writing?.content && !!writing?.mini_journal
+  const sessionDone =
+    vocabulary.length >= 10 && checklist.reviewed_flashcards &&
+    !!writing?.content && !!writing?.mini_journal
+
   useEffect(() => {
     if (sessionDone) {
       upsertProgressDay.mutate({
-        date,
-        completed: true,
-        words_count: vocabulary.length,
-        writing_done: !!writing?.content,
+        date, completed: true,
+        words_count: vocabulary.length, writing_done: !!writing?.content,
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionDone, date])
 
-  // ── Error state ──
+  // ── Error ──
   if (logError) {
     return (
-      <div
-        className="rounded-2xl p-8 text-center space-y-3 max-w-lg mx-auto mt-12"
-        style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
-      >
-        <p className="text-red-500 font-semibold text-lg">🔌 Database not connected</p>
-        <p className="text-sm" style={{ color: 'var(--c-text-2)' }}>
+      <div style={{
+        borderRadius: 14, padding: 32, textAlign: 'center', maxWidth: 480, margin: '48px auto',
+        background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.25)',
+      }}>
+        <p style={{ color: '#ef4444', fontWeight: 600, fontSize: 18, marginBottom: 8 }}>🔌 Database not connected</p>
+        <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>
           Run{' '}
-          <code
-            className="px-1.5 py-0.5 rounded text-xs font-mono"
-            style={{ background: 'var(--c-input-bg)', border: '1px solid var(--c-input-border)', color: 'var(--c-text-1)' }}
-          >
+          <code style={{ padding: '2px 6px', borderRadius: 4, fontSize: 12, fontFamily: 'var(--font-mono, monospace)', background: 'var(--chip)', border: '1.5px solid var(--ink)' }}>
             supabase-schema.sql
           </code>{' '}
           in your Supabase SQL Editor, then add your env variables.
@@ -377,182 +454,186 @@ export default function LogPage() {
     )
   }
 
-  // ── Loading state ──
+  // ── Loading ──
   if (logLoading) {
     return (
-      <div className="flex gap-6">
-        <div className="w-56 shrink-0 space-y-3">
-          <Skeleton className="h-24 w-full rounded-2xl" style={{ background: 'var(--c-card-border)' }} />
-          <Skeleton className="h-60 w-full rounded-2xl" style={{ background: 'var(--c-card-border)' }} />
-          <Skeleton className="h-36 w-full rounded-2xl" style={{ background: 'var(--c-card-border)' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: 22 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Skeleton className="h-28 w-full rounded-2xl" />
+          <Skeleton className="h-72 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
         </div>
-        <div className="flex-1 space-y-4">
-          <Skeleton className="h-20 w-full rounded-2xl" style={{ background: 'var(--c-card-border)' }} />
-          <Skeleton className="h-96 w-full rounded-2xl" style={{ background: 'var(--c-card-border)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
         </div>
       </div>
     )
   }
 
-  const nextStepConfig = STEPS[STEPS.findIndex(s => s.id === activeStep) + 1]
+  const nextStep = STEPS[STEPS.findIndex((s) => s.id === activeStep) + 1]
 
   return (
-    <div className="flex gap-5 items-start">
-      {/* ── Sidebar — hidden on mobile ── */}
-      <div className="hidden md:block">
+    <div>
+      {/* ── Page header ── */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr auto',
+        gap: 24, alignItems: 'flex-end',
+        padding: '8px 0 28px',
+        borderBottom: '1.5px solid var(--line-soft)',
+        marginBottom: 28,
+      }}>
+        <div>
+          {/* Big editorial date */}
+          <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 64, lineHeight: 0.95, letterSpacing: '-0.03em' }}>
+            <span style={{ color: 'var(--ink)' }}>{dow},</span>{' '}
+            <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>{mo}</em>{' '}
+            <span style={{
+              display: 'inline-block', marginLeft: 4,
+              padding: '0 14px 2px',
+              background: 'var(--lime)',
+              border: '1.5px solid var(--ink)', borderRadius: 14,
+              boxShadow: 'var(--shadow-sm)',
+              transform: 'rotate(-1.2deg)',
+              color: '#fff',
+            }}>
+              {day}
+            </span>
+          </div>
+          <p style={{ marginTop: 10, fontSize: 15, color: 'var(--ink-2)', maxWidth: '52ch' }}>
+            Session{' '}
+            <em style={{ fontFamily: 'var(--font-serif, serif)', fontStyle: 'italic', fontSize: 17, color: 'var(--ink)' }}>
+              {String(parseInt(day)).padStart(2, '0')}
+            </em>{' '}
+            of your 30-day sprint. Seven stations ahead —{' '}
+            <em style={{ fontFamily: 'var(--font-serif, serif)', fontStyle: 'italic', fontSize: 17, color: 'var(--ink)' }}>
+              vocabulary, writing, reflection
+            </em>. Show up, then keep going.
+          </p>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          {[
+            { k: 'Today',      v: `${completedCount}`, detail: `/ ${STEPS.length}`,  unit: 'stations done', bg: 'var(--lime)',    color: '#fff' },
+            { k: 'Vocab bank', v: `${vocabulary.length}`, detail: '',                unit: 'words today',   bg: 'var(--sky)',    color: 'var(--ink)' },
+            { k: 'Writing',    v: writing?.content ? '✓' : '–', detail: '',          unit: 'this session',  bg: 'var(--blush)', color: 'var(--ink)' },
+          ].map((stat) => (
+            <div key={stat.k} style={{
+              border: '1.5px solid var(--ink)', borderRadius: 12,
+              padding: '10px 14px', minWidth: 108,
+              background: stat.bg, boxShadow: 'var(--shadow-sm)',
+              color: stat.color,
+            }}>
+              <div className="caps" style={{ opacity: 0.75 }}>{stat.k}</div>
+              <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 32, lineHeight: 1, marginTop: 4 }}>
+                {stat.v}
+                {stat.detail && <span style={{ fontSize: 20, opacity: 0.6 }}>{stat.detail}</span>}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 3 }}>{stat.unit}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 3-column grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: 22, alignItems: 'start' }}>
+
+        {/* Left sidebar */}
         <Sidebar
           activeStep={activeStep}
           setActiveStep={setActiveStep}
-          date={date}
           log={log}
-          vocabCount={vocabulary.length}
-          writingDone={!!writing?.content}
-          journalDone={!!writing?.mini_journal}
-          flashcardsDone={checklist.reviewed_flashcards}
-          spacedRepDone={checklist.reviewed_old_words ?? false}
-          quizDone={checklist.quiz_done ?? false}
+          doneMap={doneMap}
+          completedCount={completedCount}
           onUpdateLog={(fields) => upsertLog.mutate({ date, week_number: log?.week_number ?? 1, ...fields })}
         />
-      </div>
 
-      {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 pb-20 md:pb-0">
-        {/* Page header */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="float text-3xl select-none">🚀</div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight gradient-text">
-                {displayDate}
-                <span className="text-base font-normal opacity-60 ml-2" style={{ color: 'var(--c-text-3)', WebkitTextFillColor: 'var(--c-text-3)' }}>
-                  {displayYear}
-                </span>
-              </h1>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--c-text-2)' }}>
-                Daily English Session · Let&apos;s level up ✨
-              </p>
-            </div>
-          </div>
+        {/* Main content */}
+        <main style={{ minWidth: 0 }}>
+          <AnimatePresence mode="wait">
+            <motion.div key={activeStep} variants={slideIn} initial="hidden" animate="show" exit="exit">
+              {activeStep === 'vocabulary' && (
+                <VocabularyStep date={date} log={log} vocabulary={vocabulary} isLoading={vocabLoading} />
+              )}
+              {activeStep === 'spaced-rep' && (
+                <SpacedRepetitionStep date={date} onComplete={handleSpacedRepComplete} />
+              )}
+              {activeStep === 'flashcards' && (
+                <FlashcardStep vocabulary={vocabulary} onComplete={handleFlashcardComplete} />
+              )}
+              {activeStep === 'quiz' && (
+                <QuizStep vocabulary={vocabulary} onComplete={handleQuizComplete} />
+              )}
+              {activeStep === 'writing' && (
+                <WritingStep date={date} log={log} vocabulary={vocabulary} writing={writing ?? null} />
+              )}
+              {activeStep === 'analyze' && <AnalyzeStep />}
+              {activeStep === 'review' && (
+                <ReviewStep date={date} log={log} writing={writing ?? null} />
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-          {/* Step indicator strip (mobile visible, desktop hidden) */}
-          <div className="flex gap-2 mt-4 md:hidden">
-            {STEPS.map((step) => {
-              const isActive = activeStep === step.id
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => setActiveStep(step.id)}
-                  className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={isActive ? {
-                    background: `${step.color}18`,
-                    border: `1px solid ${step.color}40`,
-                    color: step.color,
-                  } : {
-                    background: 'var(--c-card)',
-                    border: '1px solid var(--c-card-border)',
-                    color: 'var(--c-text-3)',
-                  }}
-                >
-                  {step.emoji}
-                </button>
-              )
-            })}
-          </div>
-        </motion.div>
-
-        {/* Active step content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeStep}
-            variants={slideIn}
-            initial="hidden"
-            animate="show"
-            exit="exit"
-          >
-            {activeStep === 'vocabulary' && (
-              <VocabularyStep date={date} log={log} vocabulary={vocabulary} isLoading={vocabLoading} />
-            )}
-            {activeStep === 'spaced-rep' && (
-              <SpacedRepetitionStep date={date} onComplete={handleSpacedRepComplete} />
-            )}
-            {activeStep === 'flashcards' && (
-              <FlashcardStep vocabulary={vocabulary} onComplete={handleFlashcardComplete} />
-            )}
-            {activeStep === 'quiz' && (
-              <QuizStep vocabulary={vocabulary} onComplete={handleQuizComplete} />
-            )}
-            {activeStep === 'writing' && (
-              <WritingStep date={date} log={log} vocabulary={vocabulary} writing={writing ?? null} />
-            )}
-            {activeStep === 'analyze' && (
-              <AnalyzeStep />
-            )}
-            {activeStep === 'review' && (
-              <ReviewStep date={date} log={log} writing={writing ?? null} />
-            )}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Next step nudge */}
-        {nextStepConfig && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-4 flex justify-end"
-          >
-            <button
-              onClick={() => setActiveStep(nextStepConfig.id)}
-              className="flex items-center gap-2 text-xs rounded-xl px-3 py-2 transition-all"
+          {/* Next step nudge */}
+          {nextStep && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
               style={{
-                color: nextStepConfig.color,
-                background: `${nextStepConfig.color}10`,
-                border: `1px solid ${nextStepConfig.color}25`,
+                marginTop: 22,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 18px',
+                border: '1.5px dashed var(--ink)',
+                borderRadius: 12,
               }}
             >
-              <span>{nextStepConfig.emoji}</span>
-              Next: {nextStepConfig.label}
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{
+                  width: 36, height: 36,
+                  border: '1.5px solid var(--ink)', borderRadius: '50%',
+                  background: 'var(--saffron)',
+                  display: 'grid', placeItems: 'center',
+                  fontFamily: 'var(--font-serif, serif)', fontSize: 18,
+                  color: 'var(--ink)',
+                }}>
+                  {parseInt(nextStep.num)}
+                </div>
+                <div>
+                  <div className="caps" style={{ color: 'var(--ink-3)' }}>Up next</div>
+                  <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 22, lineHeight: 1, marginTop: 2 }}>
+                    {nextStep.label}{' '}
+                    <em style={{ fontStyle: 'italic', color: 'var(--ink-3)', fontSize: 15 }}>· {nextStep.sub}</em>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveStep(nextStep.id)}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '12px 18px',
+                  border: '1.5px solid var(--ink)', borderRadius: 12,
+                  background: 'var(--ink)', color: 'var(--paper)',
+                  fontWeight: 600, fontSize: 14,
+                  boxShadow: 'var(--shadow)', cursor: 'pointer',
+                  transition: 'transform 0.08s ease, box-shadow 0.08s ease',
+                }}
+              >
+                Continue <ArrowIcon />
+              </button>
+            </motion.div>
+          )}
+        </main>
 
-      {/* ── Mobile bottom nav ── */}
-      <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex"
-        style={{
-          background: 'var(--c-nav-bg)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid var(--c-nav-border)',
-        }}
-      >
-        {STEPS.map((step) => {
-          const isActive = activeStep === step.id
-          const Icon = step.icon
-          return (
-            <button
-              key={step.id}
-              onClick={() => setActiveStep(step.id)}
-              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-all"
-              style={{ color: isActive ? step.color : 'var(--c-text-3)' }}
-            >
-              {isActive
-                ? <span className="text-xl">{step.emoji}</span>
-                : <Icon className="w-5 h-5" />
-              }
-              <span className="text-[10px] font-medium">{step.label}</span>
-              {isActive && (
-                <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: step.color, boxShadow: `0 0 4px ${step.color}` }} />
-              )}
-            </button>
-          )
-        })}
+        {/* Right rail */}
+        <RightRail doneMap={doneMap} />
       </div>
     </div>
   )

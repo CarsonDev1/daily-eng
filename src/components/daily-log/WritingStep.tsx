@@ -1,11 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { DailyLog, VocabularyEntry, WritingSession } from '@/lib/supabase'
 import { useUpsertWritingSession, useGenerateWritingTopic } from '@/hooks/useDailyLog'
 import { Sparkles, PenLine, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
@@ -22,6 +17,18 @@ interface Props {
   log: DailyLog | null | undefined
   vocabulary: VocabularyEntry[]
   writing: WritingSession | null
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1.5px solid var(--line-soft)',
+  borderRadius: 10,
+  background: 'var(--paper)',
+  color: 'var(--ink)',
+  fontSize: 14,
+  outline: 'none',
+  transition: 'border-color 0.15s',
 }
 
 export function WritingStep({ date, log, vocabulary, writing }: Props) {
@@ -56,179 +63,181 @@ export function WritingStep({ date, log, vocabulary, writing }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <PenLine className="w-5 h-5 text-green-600" />
-              Free Writing
-            </CardTitle>
-            <CardDescription className="mt-1">
-              20 mins · 5–8 sentences · Just write, don&apos;t overthink it
-            </CardDescription>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateTopic}
-            disabled={generateTopic.isPending}
-            className="flex items-center gap-2"
-          >
-            {generateTopic.isPending ? (
-              <><RefreshCw className="w-3 h-3 animate-spin" /> Thinking...</>
-            ) : (
-              <><Sparkles className="w-3 h-3 text-purple-500" /> AI Topic</>
-            )}
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Topic input */}
+    <div className="card-editorial p-5 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <Label className="text-sm font-medium">Today&apos;s Topic</Label>
-          <div className="flex gap-2 mt-1">
-            <Input
-              placeholder="Write your topic here..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSuggestions(!showSuggestions)}
-              className="text-xs"
-              style={{ color: 'var(--c-text-2)' }}
-            >
-              Suggestions {showSuggestions ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
-            </Button>
+          <div className="flex items-center gap-2 mb-1">
+            <PenLine style={{ width: 16, height: 16, color: 'var(--ink-2)' }} />
+            <span style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 20, color: 'var(--ink)' }}>Free Writing</span>
           </div>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>20 mins · 5–8 sentences · Just write, don&apos;t overthink it</p>
         </div>
-
-        {/* AI generated prompt */}
-        {generatedPrompt && (
-          <div
-            className="rounded-lg p-3"
-            style={{ background: 'var(--c-purple-bg)', border: '1px solid var(--c-purple-border)' }}
-          >
-            <p className="text-xs font-medium text-purple-500 mb-1">AI Writing Prompt</p>
-            <p className="text-sm" style={{ color: 'var(--c-text-1)' }}>{generatedPrompt}</p>
-          </div>
-        )}
-
-        {/* Topic suggestions */}
-        {showSuggestions && (
-          <div
-            className="rounded-lg p-4 space-y-3"
-            style={{ background: 'var(--c-bg)', border: '1px solid var(--c-card-border)' }}
-          >
-            {TOPIC_SUGGESTIONS.map((group) => (
-              <div key={group.cat}>
-                <p
-                  className="text-xs font-semibold uppercase tracking-wide mb-2"
-                  style={{ color: 'var(--c-text-3)' }}
-                >
-                  {group.cat}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {group.topics.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => { setTopic(t); setShowSuggestions(false) }}
-                      className="text-xs px-3 py-1 rounded-full transition-colors hover:border-green-400 hover:text-green-600"
-                      style={{
-                        background: 'var(--c-card)',
-                        border: '1px solid var(--c-card-border)',
-                        color: 'var(--c-text-2)',
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Main writing area */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label className="text-sm font-medium">My Writing</Label>
-            <span className="text-xs" style={{ color: 'var(--c-text-3)' }}>
-              {wordCount} words · {sentenceCount} sentences
-              {sentenceCount >= 5 && sentenceCount <= 8 && (
-                <span className="text-green-500 ml-1">✓ Good length!</span>
-              )}
-            </span>
-          </div>
-          <Textarea
-            placeholder="Write 5–8 sentences in English here — not perfect, just write!"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-[160px] resize-y text-sm leading-relaxed"
-          />
-        </div>
-
-        {/* Words used */}
-        <div>
-          <Label className="text-sm font-medium">New Words I Used</Label>
-          <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-            {vocabulary.slice(0, 10).map((v) => {
-              const selected = newWordsUsed.includes(v.word)
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => {
-                    const current = newWordsUsed.split(',').map((w) => w.trim()).filter(Boolean)
-                    const word = v.word
-                    if (current.includes(word)) {
-                      setNewWordsUsed(current.filter((w) => w !== word).join(', '))
-                    } else {
-                      setNewWordsUsed([...current, word].join(', '))
-                    }
-                  }}
-                  className="text-xs px-2.5 py-1 rounded-full transition-colors"
-                  style={selected ? {
-                    background: 'var(--c-green-bg)',
-                    border: '1px solid var(--c-green-border)',
-                    color: '#16a34a',
-                  } : {
-                    background: 'var(--c-card)',
-                    border: '1px solid var(--c-card-border)',
-                    color: 'var(--c-text-2)',
-                  }}
-                >
-                  {v.word}
-                </button>
-              )
-            })}
-          </div>
-          <Input
-            placeholder="or type words separated by commas..."
-            value={newWordsUsed}
-            onChange={(e) => setNewWordsUsed(e.target.value)}
-            className="text-sm"
-          />
-        </div>
-
-        <Button
-          onClick={handleSave}
-          disabled={upsertWriting.isPending || !content.trim() || !log?.id}
-          className="w-full bg-green-600 hover:bg-green-700"
+        <button
+          onClick={handleGenerateTopic}
+          disabled={generateTopic.isPending}
+          className="btn-action ghost sm"
         >
-          {upsertWriting.isPending ? 'Saving...' : 'Save Writing'}
-        </Button>
+          {generateTopic.isPending
+            ? <><RefreshCw style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} /> Thinking...</>
+            : <><Sparkles style={{ width: 13, height: 13 }} /> AI Topic</>
+          }
+        </button>
+      </div>
 
-        {writing?.content && (
-          <p className="text-xs text-center" style={{ color: 'var(--c-text-3)' }}>
-            Last saved · {new Date(writing.created_at).toLocaleTimeString()}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {/* Topic input */}
+      <div>
+        <label className="caps" style={{ fontSize: 10, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Today&apos;s Topic</label>
+        <div className="flex gap-2">
+          <input
+            placeholder="Write your topic here..."
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            style={{ ...inputStyle, flex: 1 }}
+            onFocus={(e) => (e.target.style.borderColor = 'var(--ink)')}
+            onBlur={(e) => (e.target.style.borderColor = 'var(--line-soft)')}
+          />
+          <button
+            onClick={() => setShowSuggestions(!showSuggestions)}
+            className="btn-action ghost sm"
+          >
+            Suggestions {showSuggestions ? <ChevronUp style={{ width: 12, height: 12 }} /> : <ChevronDown style={{ width: 12, height: 12 }} />}
+          </button>
+        </div>
+      </div>
+
+      {/* AI generated prompt */}
+      {generatedPrompt && (
+        <div style={{ borderRadius: 10, padding: '10px 14px', background: 'var(--lilac)', border: '1px solid rgba(201,184,255,0.5)' }}>
+          <p className="caps" style={{ fontSize: 9, color: 'var(--ink-2)', marginBottom: 4 }}>AI Writing Prompt</p>
+          <p style={{ fontSize: 13, color: 'var(--ink)' }}>{generatedPrompt}</p>
+        </div>
+      )}
+
+      {/* Topic suggestions */}
+      {showSuggestions && (
+        <div style={{ borderRadius: 12, padding: 14, background: 'var(--chip)', border: '1px solid var(--line-soft)' }}>
+          {TOPIC_SUGGESTIONS.map((group) => (
+            <div key={group.cat} style={{ marginBottom: 12 }}>
+              <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 6 }}>{group.cat}</p>
+              <div className="flex flex-wrap gap-2">
+                {group.topics.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setTopic(t); setShowSuggestions(false) }}
+                    style={{
+                      fontSize: 12,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      background: 'var(--paper)',
+                      border: '1.5px solid var(--line-soft)',
+                      color: 'var(--ink-2)',
+                      cursor: 'pointer',
+                      transition: 'all 0.1s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.color = 'var(--ink)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line-soft)'; e.currentTarget.style.color = 'var(--ink-2)' }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Main writing area */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="caps" style={{ fontSize: 10, color: 'var(--ink-3)' }}>My Writing</label>
+          <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+            {wordCount} words · {sentenceCount} sentences
+            {sentenceCount >= 5 && sentenceCount <= 8 && (
+              <span style={{ color: 'var(--lime)', marginLeft: 4 }}>✓ Good length!</span>
+            )}
+          </span>
+        </div>
+        <textarea
+          placeholder="Write 5–8 sentences in English here — not perfect, just write!"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{
+            width: '100%',
+            minHeight: 160,
+            resize: 'vertical',
+            padding: '12px',
+            border: '1.5px solid var(--line-soft)',
+            borderRadius: 10,
+            background: 'var(--paper)',
+            color: 'var(--ink)',
+            fontSize: 14,
+            lineHeight: 1.7,
+            outline: 'none',
+            fontFamily: 'var(--font-sans)',
+          }}
+          onFocus={(e) => (e.target.style.borderColor = 'var(--ink)')}
+          onBlur={(e) => (e.target.style.borderColor = 'var(--line-soft)')}
+        />
+      </div>
+
+      {/* Words used */}
+      <div>
+        <label className="caps" style={{ fontSize: 10, color: 'var(--ink-3)', display: 'block', marginBottom: 8 }}>New Words I Used</label>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {vocabulary.slice(0, 10).map((v) => {
+            const selected = newWordsUsed.includes(v.word)
+            return (
+              <button
+                key={v.id}
+                onClick={() => {
+                  const current = newWordsUsed.split(',').map((w) => w.trim()).filter(Boolean)
+                  const word = v.word
+                  if (current.includes(word)) {
+                    setNewWordsUsed(current.filter((w) => w !== word).join(', '))
+                  } else {
+                    setNewWordsUsed([...current, word].join(', '))
+                  }
+                }}
+                style={{
+                  fontSize: 12,
+                  padding: '3px 10px',
+                  borderRadius: 999,
+                  background: selected ? 'rgba(49,156,246,0.1)' : 'var(--paper-2)',
+                  border: `1.5px solid ${selected ? 'var(--lime)' : 'var(--line-soft)'}`,
+                  color: selected ? 'var(--lime)' : 'var(--ink-2)',
+                  cursor: 'pointer',
+                  fontWeight: selected ? 600 : 400,
+                  transition: 'all 0.1s',
+                }}
+              >
+                {v.word}
+              </button>
+            )
+          })}
+        </div>
+        <input
+          placeholder="or type words separated by commas..."
+          value={newWordsUsed}
+          onChange={(e) => setNewWordsUsed(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={upsertWriting.isPending || !content.trim() || !log?.id}
+        className="btn-action w-full justify-center"
+        style={{ opacity: (upsertWriting.isPending || !content.trim() || !log?.id) ? 0.5 : 1, cursor: (!content.trim() || !log?.id) ? 'not-allowed' : 'pointer' }}
+      >
+        {upsertWriting.isPending ? 'Saving...' : 'Save Writing'}
+      </button>
+
+      {writing?.content && (
+        <p className="text-center" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+          Last saved · {new Date(writing.created_at).toLocaleTimeString()}
+        </p>
+      )}
+    </div>
   )
 }

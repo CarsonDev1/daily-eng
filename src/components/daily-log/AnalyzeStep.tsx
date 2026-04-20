@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
 import { api } from '@/lib/axios'
 import { Loader2, Languages, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -19,61 +17,48 @@ interface HistoryItem {
   result: AnalysisResult
 }
 
-const ERROR_COLORS: Record<string, string> = {
-  'word order':          '#60a5fa',
-  'literal translation': '#f87171',
-  collocation:           '#fb923c',
-  articles:              '#a78bfa',
-  register:              '#34d399',
-  grammar:               '#ec4899',
-  tense:                 '#f59e0b',
-}
-
 const VERSION_CONFIG = [
-  { key: 'casual',       label: 'Bình thường',   emoji: '💬', color: '#60a5fa' },
-  { key: 'professional', label: 'Chuyên nghiệp', emoji: '💼', color: '#a78bfa' },
-  { key: 'formal',       label: 'Trang trọng',   emoji: '🎩', color: '#34d399' },
+  { key: 'casual',       label: 'Bình thường',   emoji: '💬' },
+  { key: 'professional', label: 'Chuyên nghiệp', emoji: '💼' },
+  { key: 'formal',       label: 'Trang trọng',   emoji: '🎩' },
 ] as const
 
 function ScoreMeter({ score }: { score: number }) {
-  const color = score <= 3 ? '#34d399' : score <= 6 ? '#f59e0b' : '#f87171'
+  const color = score <= 3 ? 'var(--mint)' : score <= 6 ? 'var(--saffron)' : 'var(--coral)'
   const label = score <= 3 ? 'Nghe rất tự nhiên!' : score <= 6 ? 'Hơi có mùi tiếng Việt' : 'Rất "Việt hóa"'
 
   return (
     <div className="flex items-center gap-4">
-      <div
-        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shrink-0"
-        style={{
-          background: `${color}15`,
-          border: `2px solid ${color}60`,
-          color,
-          boxShadow: `0 0 20px ${color}25`,
-        }}
-      >
+      <div style={{
+        width: 64, height: 64, borderRadius: '50%',
+        display: 'grid', placeItems: 'center',
+        fontSize: 22, fontWeight: 700,
+        background: 'var(--paper-2)',
+        border: `2px solid ${color}`,
+        color,
+        flexShrink: 0,
+      }}>
         {score}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold" style={{ color: 'var(--c-text-3)' }}>
-            Mức độ &quot;Việt hóa&quot;
-          </span>
-          <span className="text-xs font-bold" style={{ color }}>{label}</span>
+          <span className="caps" style={{ fontSize: 9, color: 'var(--ink-3)' }}>Mức độ &quot;Việt hóa&quot;</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
         </div>
         <div className="flex gap-0.5">
           {Array.from({ length: 10 }, (_, i) => (
             <motion.div
               key={i}
-              className="flex-1 h-2 rounded-full"
+              style={{ flex: 1, height: 6, borderRadius: 999, background: i < score ? color : 'var(--line-soft)', transformOrigin: 'left' }}
               initial={{ opacity: 0, scaleX: 0 }}
               animate={{ opacity: 1, scaleX: 1 }}
               transition={{ delay: i * 0.04, duration: 0.2 }}
-              style={{ background: i < score ? color : 'var(--c-input-border)', transformOrigin: 'left' }}
             />
           ))}
         </div>
         <div className="flex justify-between mt-1">
-          <span className="text-[10px]" style={{ color: '#34d399' }}>Tự nhiên</span>
-          <span className="text-[10px]" style={{ color: '#f87171' }}>Rất Việt hóa</span>
+          <span style={{ fontSize: 10, color: 'var(--mint)' }}>Tự nhiên</span>
+          <span style={{ fontSize: 10, color: 'var(--coral)' }}>Rất Việt hóa</span>
         </div>
       </div>
     </div>
@@ -84,86 +69,46 @@ function ResultCard({ sentence, result }: { sentence: string; result: AnalysisRe
   const [showThinking, setShowThinking] = useState(true)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
       {/* Original sentence */}
-      <div
-        className="rounded-xl px-4 py-3"
-        style={{ background: 'var(--c-input-bg)', border: '1px solid var(--c-input-border)' }}
-      >
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--c-text-3)' }}>
-          Câu của bạn
-        </p>
-        <p className="text-sm italic" style={{ color: 'var(--c-text-2)' }}>&quot;{sentence}&quot;</p>
+      <div style={{ borderRadius: 10, padding: '10px 14px', background: 'var(--chip)', border: '1px solid var(--line-soft)' }}>
+        <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 4 }}>Câu của bạn</p>
+        <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--ink-2)' }}>&quot;{sentence}&quot;</p>
       </div>
 
       {/* Score */}
-      <div
-        className="rounded-xl px-4 py-4"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)' }}
-      >
+      <div style={{ borderRadius: 10, padding: '14px 16px', background: 'var(--paper-2)', border: '1.5px solid var(--line-soft)' }}>
         <ScoreMeter score={result.viet_hoa_score} />
       </div>
 
       {/* Error types */}
       {result.error_types.length > 0 && (
-        <div
-          className="rounded-xl px-4 py-3"
-          style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)' }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--c-text-3)' }}>
-            Loại lỗi
-          </p>
+        <div style={{ borderRadius: 10, padding: '10px 14px', background: 'var(--paper-2)', border: '1.5px solid var(--line-soft)' }}>
+          <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 8 }}>Loại lỗi</p>
           <div className="flex flex-wrap gap-1.5">
-            {result.error_types.map((type) => {
-              const color = ERROR_COLORS[type.toLowerCase()] ?? '#94a3b8'
-              return (
-                <span
-                  key={type}
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{ background: `${color}15`, border: `1px solid ${color}40`, color }}
-                >
-                  {type}
-                </span>
-              )
-            })}
+            {result.error_types.map((type) => (
+              <span key={type} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 999, fontWeight: 600, background: 'var(--blush)', border: '1.5px solid var(--coral)', color: 'var(--coral)' }}>
+                {type}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
       {/* Three versions */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ border: '1px solid var(--c-card-border)' }}
-      >
-        <div className="px-4 py-2.5" style={{ background: 'var(--c-card)', borderBottom: '1px solid var(--c-card-border)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--c-text-3)' }}>
-            3 cách diễn đạt
-          </p>
+      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1.5px solid var(--line-soft)' }}>
+        <div style={{ padding: '8px 14px', background: 'var(--chip)', borderBottom: '1px solid var(--line-soft)' }}>
+          <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)' }}>3 cách diễn đạt</p>
         </div>
-        {VERSION_CONFIG.map(({ key, label, emoji, color }) => (
-          <div
-            key={key}
-            className="px-4 py-3"
-            style={{ background: 'var(--c-card)', borderBottom: '1px solid var(--c-card-border)' }}
-          >
+        {VERSION_CONFIG.map(({ key, label, emoji }) => (
+          <div key={key} style={{ padding: '10px 14px', background: 'var(--paper-2)', borderBottom: '1px solid var(--line-soft)' }}>
             <div className="flex items-start gap-3">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm"
-                style={{ background: `${color}15`, border: `1px solid ${color}35` }}
-              >
+              <div style={{ width: 30, height: 30, borderRadius: 8, display: 'grid', placeItems: 'center', fontSize: 14, background: 'var(--chip)', border: '1px solid var(--line-soft)', flexShrink: 0 }}>
                 {emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color }}>
-                  {label}
-                </p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--c-text-1)' }}>
-                  &quot;{result.versions[key]}&quot;
-                </p>
+                <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 3 }}>{label}</p>
+                <p style={{ fontSize: 13, color: 'var(--ink)' }}>&quot;{result.versions[key]}&quot;</p>
               </div>
             </div>
           </div>
@@ -171,39 +116,30 @@ function ResultCard({ sentence, result }: { sentence: string; result: AnalysisRe
       </div>
 
       {/* Native thinking */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ border: '1px solid rgba(6,182,212,0.25)' }}
-      >
+      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1.5px solid var(--sky)' }}>
         <button
-          className="w-full px-4 py-3 flex items-center justify-between transition-colors"
-          style={{ background: 'rgba(6,182,212,0.08)' }}
+          className="w-full flex items-center justify-between transition-colors"
+          style={{ padding: '10px 14px', background: 'var(--sky)' }}
           onClick={() => setShowThinking((v) => !v)}
         >
           <div className="flex items-center gap-2">
-            <span className="text-base">🧠</span>
-            <p className="text-xs font-semibold" style={{ color: '#06b6d4' }}>
-              Người bản xứ TƯ DUY thế nào?
-            </p>
+            <span style={{ fontSize: 15 }}>🧠</span>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>Người bản xứ TƯ DUY thế nào?</p>
           </div>
           {showThinking
-            ? <ChevronUp className="w-3.5 h-3.5" style={{ color: '#06b6d4' }} />
-            : <ChevronDown className="w-3.5 h-3.5" style={{ color: '#06b6d4' }} />
+            ? <ChevronUp style={{ width: 14, height: 14, color: 'var(--ink-3)' }} />
+            : <ChevronDown style={{ width: 14, height: 14, color: 'var(--ink-3)' }} />
           }
         </button>
         <AnimatePresence>
           {showThinking && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
               style={{ overflow: 'hidden' }}
             >
-              <div className="px-4 py-3" style={{ background: 'var(--c-card)' }}>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--c-text-2)' }}>
-                  {result.native_thinking}
-                </p>
+              <div style={{ padding: '12px 14px', background: 'var(--paper-2)' }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{result.native_thinking}</p>
               </div>
             </motion.div>
           )}
@@ -221,10 +157,10 @@ const EXAMPLES = [
 ]
 
 export function AnalyzeStep() {
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [history, setHistory]   = useState<HistoryItem[]>([])
-  const [error, setError]       = useState('')
+  const [input, setInput]     = useState('')
+  const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [error, setError]     = useState('')
 
   const handleAnalyze = async () => {
     const sentence = input.trim()
@@ -242,59 +178,45 @@ export function AnalyzeStep() {
     }
   }
 
-  const S = { background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)' }
-
   return (
     <div className="space-y-4">
-      {/* Header card */}
-      <div className="rounded-2xl p-5" style={S}>
+      {/* Input card */}
+      <div className="card-editorial p-5">
         <div className="flex items-start gap-3 mb-4">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.3)' }}
-          >
-            <Languages className="w-5 h-5" style={{ color: '#06b6d4' }} />
+          <div style={{ width: 38, height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--sky)', border: '1.5px solid var(--line-soft)', flexShrink: 0 }}>
+            <Languages style={{ width: 18, height: 18, color: 'var(--lime)' }} />
           </div>
           <div>
-            <h2 className="text-base font-bold" style={{ color: 'var(--c-text-1)' }}>
-              English Analyzer
-            </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--c-text-3)' }}>
-              Phát hiện &amp; sửa câu tiếng Anh bị &quot;Việt hóa&quot;
-            </p>
+            <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 18, color: 'var(--ink)' }}>English Analyzer</p>
+            <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Phát hiện &amp; sửa câu tiếng Anh bị &quot;Việt hóa&quot;</p>
           </div>
         </div>
 
-        {/* Input */}
-        <Textarea
+        <textarea
           placeholder="Gõ câu tiếng Anh của bạn vào đây..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAnalyze()
-          }}
-          className="min-h-[90px] resize-none text-sm mb-3"
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAnalyze() }}
           disabled={loading}
+          style={{
+            width: '100%', minHeight: 90, resize: 'none', padding: '10px 12px',
+            border: '1.5px solid var(--line-soft)', borderRadius: 10,
+            background: 'var(--paper)', color: 'var(--ink)', fontSize: 14,
+            outline: 'none', fontFamily: 'var(--font-sans)', marginBottom: 12,
+          }}
+          onFocus={(e) => (e.target.style.borderColor = 'var(--ink)')}
+          onBlur={(e) => (e.target.style.borderColor = 'var(--line-soft)')}
         />
 
-        {/* Example suggestions (only when input is empty) */}
         {!input && history.length === 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--c-text-3)' }}>
-              Thử với câu mẫu
-            </p>
-            <div className="flex flex-wrap gap-1.5">
+          <div style={{ marginBottom: 12 }}>
+            <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 6 }}>Thử với câu mẫu</p>
+            <div className="flex flex-wrap gap-2">
               {EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => setInput(ex)}
-                  className="text-xs px-2.5 py-1 rounded-lg transition-all"
-                  style={{
-                    background: 'var(--c-input-bg)',
-                    border: '1px solid var(--c-input-border)',
-                    color: 'var(--c-text-2)',
-                  }}
-                >
+                <button key={ex} onClick={() => setInput(ex)}
+                  style={{ fontSize: 12, padding: '4px 10px', borderRadius: 8, background: 'var(--chip)', border: '1px solid var(--line-soft)', color: 'var(--ink-2)', cursor: 'pointer', transition: 'all 0.1s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--paper-2)'; e.currentTarget.style.borderColor = 'var(--ink)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--chip)'; e.currentTarget.style.borderColor = 'var(--line-soft)' }}>
                   {ex}
                 </button>
               ))}
@@ -303,60 +225,42 @@ export function AnalyzeStep() {
         )}
 
         <div className="flex items-center gap-2">
-          <Button
+          <button
             onClick={handleAnalyze}
             disabled={loading || !input.trim()}
-            className="flex-1"
-            style={{
-              background: input.trim() ? 'rgba(6,182,212,0.9)' : undefined,
-              color: input.trim() ? 'white' : undefined,
-            }}
+            className="btn-action"
+            style={{ flex: 1, justifyContent: 'center', opacity: (!input.trim()) ? 0.5 : 1, cursor: !input.trim() ? 'not-allowed' : 'pointer' }}
           >
-            {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang phân tích...</>
-            ) : (
-              'Phân tích · Ctrl+Enter'
-            )}
-          </Button>
+            {loading
+              ? <><Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> Đang phân tích...</>
+              : 'Phân tích · Ctrl+Enter'
+            }
+          </button>
           {input && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setInput('')}
-              style={{ color: 'var(--c-text-3)' }}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
+            <button onClick={() => setInput('')} className="btn-action ghost sm" style={{ flexShrink: 0 }}>
+              <RotateCcw style={{ width: 13, height: 13 }} />
+            </button>
           )}
         </div>
 
-        {error && (
-          <p className="text-xs text-red-400 mt-2 text-center">{error}</p>
-        )}
+        {error && <p style={{ fontSize: 12, color: 'var(--coral)', marginTop: 8, textAlign: 'center' }}>{error}</p>}
       </div>
 
-      {/* Results history */}
+      {/* Results */}
       <AnimatePresence>
         {history.map((item, idx) => (
-          <div key={`${item.sentence}-${idx}`} className="rounded-2xl p-5" style={S}>
+          <div key={`${item.sentence}-${idx}`} className="card-editorial p-5">
             <ResultCard sentence={item.sentence} result={item.result} />
           </div>
         ))}
       </AnimatePresence>
 
-      {/* Empty state */}
       {history.length === 0 && !loading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="rounded-2xl p-8 text-center"
-          style={S}
-        >
-          <div className="text-4xl mb-3">🔍</div>
-          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--c-text-2)' }}>
-            Gõ câu tiếng Anh bất kỳ
-          </p>
-          <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="card-editorial p-8 text-center">
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>Gõ câu tiếng Anh bất kỳ</p>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>
             AI sẽ cho điểm mức độ &quot;Việt hóa&quot; và viết lại 3 phiên bản tự nhiên hơn
           </p>
         </motion.div>

@@ -1,11 +1,7 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
 import { DailyLog } from '@/lib/supabase'
-import { CheckSquare } from 'lucide-react'
+import { CheckSquare, Check } from 'lucide-react'
 
 type Checklist = DailyLog['checklist']
 
@@ -19,11 +15,11 @@ interface Props {
   onChecklistChange: (checklist: Checklist) => void
 }
 
-const ITEMS: { key: keyof Checklist; label: string; emoji: string; auto: boolean }[] = [
-  { key: 'learned_10_words',     label: 'Learned 10 new words',             emoji: '🔵', auto: true },
-  { key: 'reviewed_flashcards',  label: 'Reviewed flashcards',              emoji: '🟣', auto: true },
-  { key: 'finished_writing',     label: 'Finished writing (5–8 sentences)', emoji: '🟢', auto: true },
-  { key: 'wrote_journal',        label: 'Wrote mini journal entry',         emoji: '🟠', auto: true },
+const ITEMS: { key: keyof Checklist; label: string }[] = [
+  { key: 'learned_10_words',    label: 'Learned 10 new words' },
+  { key: 'reviewed_flashcards', label: 'Reviewed flashcards' },
+  { key: 'finished_writing',    label: 'Finished writing (5–8 sentences)' },
+  { key: 'wrote_journal',       label: 'Wrote mini journal entry' },
 ]
 
 export function TonightsChecklist({
@@ -41,67 +37,69 @@ export function TonightsChecklist({
 
   const completedCount = Object.values(checklist).filter(Boolean).length
   const total = ITEMS.length
-  const progress = (completedCount / total) * 100
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CheckSquare className="w-5 h-5" style={{ color: 'var(--c-text-2)' }} />
-            Tonight&apos;s Checklist
-          </CardTitle>
-          <span className="text-sm font-medium" style={{ color: 'var(--c-text-3)' }}>
-            {completedCount}/{total}
-          </span>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <CheckSquare style={{ width: 14, height: 14, color: 'var(--ink-2)' }} />
+          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>Tonight&apos;s Checklist</span>
         </div>
-        <Progress value={progress} className="h-2 mt-2" />
-      </CardHeader>
+        <span className="caps" style={{ fontSize: 10, color: 'var(--ink-3)' }}>{completedCount}/{total}</span>
+      </div>
 
-      <CardContent>
-        <div className="space-y-2">
-          {ITEMS.map(({ key, label, emoji }) => {
-            const checked = checklist[key]
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-3 p-2 rounded-lg transition-colors"
-                style={checked ? {
-                  background: 'var(--c-green-bg)',
-                  border: '1px solid var(--c-green-border)',
-                } : {
-                  border: '1px solid transparent',
-                }}
-              >
-                <Checkbox
-                  checked={checked}
-                  disabled
-                  className={checked ? 'text-green-600 border-green-400' : ''}
-                />
-                <Label
-                  className="flex items-center gap-2 text-sm cursor-default"
-                  style={checked ? { color: '#16a34a' } : { color: 'var(--c-text-2)' }}
-                >
-                  <span>{emoji}</span>
-                  <span className={checked ? 'line-through opacity-75' : ''}>{label}</span>
-                  <span className="text-xs opacity-50 no-underline">(auto)</span>
-                </Label>
+      {/* Progress bar */}
+      <div style={{ height: 4, borderRadius: 999, background: 'var(--line-soft)', marginBottom: 12, overflow: 'hidden' }}>
+        <div
+          style={{
+            height: '100%',
+            width: `${(completedCount / total) * 100}%`,
+            background: 'var(--lime)',
+            borderRadius: 999,
+            transition: 'width 0.3s ease',
+          }}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        {ITEMS.map(({ key, label }) => {
+          const checked = checklist[key]
+          return (
+            <div
+              key={key}
+              className="tonight-item"
+              style={checked ? {} : { background: 'transparent' }}
+            >
+              <div className="tonight-item-bullet">
+                {checked && <Check style={{ width: 10, height: 10 }} />}
               </div>
-            )
-          })}
-        </div>
+              <span style={{
+                fontSize: 13,
+                color: checked ? 'var(--ink)' : 'var(--ink-3)',
+                textDecoration: checked ? 'line-through' : 'none',
+                opacity: checked ? 0.7 : 1,
+              }}>
+                {label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
 
-        {completedCount === total && (
-          <div
-            className="mt-4 p-3 rounded-lg text-center"
-            style={{ background: 'var(--c-green-bg)', border: '1px solid var(--c-green-border)' }}
-          >
-            <p className="text-sm font-semibold text-green-600">
-              Session complete! Keep up the streak! 🔥
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {completedCount === total && (
+        <div
+          className="mt-3 p-3 text-center"
+          style={{
+            background: 'rgba(49,156,246,0.08)',
+            border: '1.5px solid rgba(49,156,246,0.25)',
+            borderRadius: 10,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--lime)' }}>
+            Session complete! Keep up the streak!
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

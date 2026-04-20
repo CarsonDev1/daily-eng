@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { VocabularyEntry } from '@/lib/supabase'
 import { BrainCircuit, CheckCircle2, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { SpeakButton } from './SpeakButton'
 import { api } from '@/lib/axios'
 
@@ -28,7 +27,6 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
   const knownCount = Object.values(results).filter(r => r === 'know').length
   const progress = total > 0 ? (currentIdx / total) * 100 : 0
 
-  // Fetch mnemonics once when vocabulary is available
   useEffect(() => {
     if (vocabulary.length === 0) return
     setMnemonicLoading(true)
@@ -39,24 +37,21 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
         const map: Record<string, string> = {}
         const list = data.mnemonics as Array<{ word: string; mnemonic: string }>
         list.forEach((m) => {
-          const entry = vocabulary.find(
-            (v) => v.word.toLowerCase() === m.word.toLowerCase()
-          )
+          const entry = vocabulary.find(v => v.word.toLowerCase() === m.word.toLowerCase())
           if (entry) map[entry.id] = m.mnemonic
         })
         setMnemonics(map)
       })
-      .catch(() => { /* silently skip if mnemonic fetch fails */ })
+      .catch(() => {})
       .finally(() => setMnemonicLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary.map(v => v.id).join(',')])
 
   if (total === 0) {
     return (
-      <div className="rounded-2xl p-12 text-center"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)' }}>
-        <BrainCircuit className="w-12 h-12 mx-auto mb-3 text-violet-400 opacity-40" />
-        <p className="text-sm" style={{ color: 'var(--c-text-2)' }}>Generate vocabulary first to start flashcard review</p>
+      <div className="card-editorial p-12 text-center">
+        <BrainCircuit style={{ width: 48, height: 48, margin: '0 auto 12px', color: 'var(--ink-3)', opacity: 0.4 }} />
+        <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>Generate vocabulary first to start flashcard review</p>
       </div>
     )
   }
@@ -85,38 +80,34 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
     const skipWords = vocabulary.filter(v => results[v.id] === 'skip')
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="rounded-2xl p-8 text-center space-y-5"
-        style={{ background: 'var(--c-card)', border: '1px solid var(--c-card-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
+        className="card-editorial p-8 text-center space-y-5">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}>
-          <Trophy className="w-16 h-16 mx-auto text-yellow-400" style={{ filter: 'drop-shadow(0 0 12px rgba(251,191,36,0.5))' }} />
+          <Trophy style={{ width: 64, height: 64, margin: '0 auto', color: 'var(--saffron)' }} />
         </motion.div>
         <div>
-          <h3 className="text-2xl font-bold" style={{ color: 'var(--c-text-1)' }}>Flashcards Complete!</h3>
-          <p className="mt-1" style={{ color: 'var(--c-text-2)' }}>
-            You knew <span className="text-emerald-500 font-bold">{knownCount}</span> out of <span className="font-bold" style={{ color: 'var(--c-text-1)' }}>{total}</span> words
+          <h3 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 4 }}>Flashcards Complete!</h3>
+          <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>
+            You knew <span style={{ color: 'var(--lime)', fontWeight: 700 }}>{knownCount}</span> out of <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{total}</span> words
           </p>
         </div>
         {skipWords.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="rounded-xl p-4 text-left"
-            style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.2)' }}>
-            <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-3">Review these again</p>
+            style={{ padding: '12px 16px', background: 'var(--blush)', border: '1.5px solid var(--coral)', borderRadius: 12, textAlign: 'left' }}>
+            <p className="caps" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 10 }}>Review these again</p>
             <div className="flex flex-wrap gap-2">
               {skipWords.map(v => (
-                <div key={v.id} className="rounded-lg px-3 py-1.5 text-sm"
-                  style={{ background: 'var(--c-bg)', border: '1px solid var(--c-card-border)' }}>
-                  <span className="font-semibold" style={{ color: 'var(--c-text-1)' }}>{v.word}</span>
-                  <span className="mx-1" style={{ color: 'var(--c-text-3)' }}>—</span>
-                  <span style={{ color: 'var(--c-text-2)' }}>{v.meaning}</span>
+                <div key={v.id} style={{ padding: '4px 10px', border: '1.5px solid var(--line-soft)', borderRadius: 8, background: 'var(--paper)', fontSize: 13 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{v.word}</span>
+                  <span style={{ margin: '0 4px', color: 'var(--ink-3)' }}>—</span>
+                  <span style={{ color: 'var(--ink-2)' }}>{v.meaning}</span>
                 </div>
               ))}
             </div>
           </motion.div>
         )}
-        <Button variant="outline" onClick={restart}
-          className="gap-2 border-violet-500/30 text-violet-600 dark:text-violet-300 hover:bg-violet-500/10">
-          <RotateCcw className="w-4 h-4" /> Review Again
-        </Button>
+        <button onClick={restart} className="btn-action ghost sm" style={{ margin: '0 auto' }}>
+          <RotateCcw style={{ width: 14, height: 14 }} /> Review Again
+        </button>
       </motion.div>
     )
   }
@@ -128,29 +119,31 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BrainCircuit className="w-5 h-5 text-violet-500" />
-          <span className="font-semibold" style={{ color: 'var(--c-text-1)' }}>Flashcards</span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ background: 'rgba(139,92,246,0.15)', color: '#7c3aed', border: '1px solid rgba(139,92,246,0.3)' }}>
+          <BrainCircuit style={{ width: 18, height: 18, color: 'var(--ink-2)' }} />
+          <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>Flashcards</span>
+          <span style={{ padding: '2px 8px', border: '1.5px solid var(--line-soft)', borderRadius: 999, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', background: 'var(--chip)' }}>
             {currentIdx + 1}/{total}
           </span>
         </div>
         <div className="flex items-center gap-3 text-sm">
           {mnemonicLoading && (
-            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--c-text-3)' }}>
-              <Lightbulb className="w-3 h-3 animate-pulse text-amber-400" /> Loading hints...
+            <span className="flex items-center gap-1" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+              <Lightbulb style={{ width: 12, height: 12, color: 'var(--saffron)', animation: 'pulse 1s infinite' }} /> Loading hints...
             </span>
           )}
-          <span className="text-emerald-500 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {knownCount}</span>
-          <span className="text-orange-500 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> {currentIdx - knownCount}</span>
+          <span className="flex items-center gap-1" style={{ color: 'var(--lime)' }}><CheckCircle2 style={{ width: 13, height: 13 }} /> {knownCount}</span>
+          <span className="flex items-center gap-1" style={{ color: 'var(--coral)' }}><XCircle style={{ width: 13, height: 13 }} /> {currentIdx - knownCount}</span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--c-card-border)' }}>
-        <motion.div className="h-full rounded-full progress-shimmer"
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--line-soft)', overflow: 'hidden' }}>
+        <motion.div
+          className="progress-shimmer"
+          style={{ height: '100%', borderRadius: 999 }}
           animate={{ width: `${progress}%` }}
-          transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+        />
       </div>
 
       {/* Flip card */}
@@ -164,36 +157,49 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
             style={{ transformStyle: 'preserve-3d', cursor: 'pointer', position: 'relative', minHeight: 260 }}>
 
             {/* Front */}
-            <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
-              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', background: 'var(--c-card)', border: '1px solid var(--c-accent-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
-              <p className="text-xs font-semibold text-violet-500 uppercase tracking-widest mb-4">Tap to reveal meaning</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 select-none"
+              style={{
+                backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+                background: 'var(--paper-2)',
+                border: '1.5px solid var(--ink)',
+                borderRadius: 14,
+                boxShadow: 'var(--shadow)',
+              }}>
+              <p className="caps" style={{ fontSize: 10, color: 'var(--lime)', marginBottom: 16 }}>Tap to reveal meaning</p>
               <div className="flex items-center gap-3">
-                <p className="text-5xl font-bold tracking-tight" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+                <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 48, color: 'var(--ink)' }}>{current?.word}</p>
                 <SpeakButton word={current?.word ?? ''} size="md" />
               </div>
-              <ChevronRight className="w-5 h-5 mt-6 rotate-90" style={{ color: 'var(--c-text-3)' }} />
+              <ChevronRight style={{ width: 20, height: 20, marginTop: 24, transform: 'rotate(90deg)', color: 'var(--ink-3)' }} />
             </div>
 
             {/* Back */}
-            <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 select-none"
-              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'var(--c-card)', border: '1px solid var(--c-blue-border)', backdropFilter: 'blur(16px)', boxShadow: 'var(--c-card-shadow)' }}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 select-none"
+              style={{
+                backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+                background: 'var(--paper-2)',
+                border: '1.5px solid var(--ink)',
+                borderRadius: 14,
+                boxShadow: 'var(--shadow)',
+              }}>
               <div className="flex items-center justify-center gap-2 mb-4">
-                <p className="text-3xl font-bold" style={{ color: 'var(--c-text-1)' }}>{current?.word}</p>
+                <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 28, color: 'var(--ink)' }}>{current?.word}</p>
                 <SpeakButton word={current?.word ?? ''} size="md" />
               </div>
               <div className="w-full space-y-3">
-                <div className="rounded-xl px-4 py-3 text-center" style={{ background: 'var(--c-purple-bg)', border: '1px solid var(--c-purple-border)' }}>
-                  <p className="text-xs text-violet-500 font-medium mb-1">Meaning</p>
-                  <p className="text-lg font-semibold" style={{ color: 'var(--c-text-1)' }}>{current?.meaning}</p>
+                <div style={{ borderRadius: 10, padding: '10px 14px', textAlign: 'center', background: 'var(--sky)', border: '1px solid var(--line-soft)' }}>
+                  <p className="caps" style={{ fontSize: 10, color: 'var(--lime)', marginBottom: 4 }}>Meaning</p>
+                  <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>{current?.meaning}</p>
                 </div>
-                <div className="rounded-xl px-4 py-3 text-left" style={{ background: 'var(--c-blue-bg)', border: '1px solid var(--c-blue-border)' }}>
-                  <p className="text-xs text-cyan-500 font-medium mb-1">Example</p>
-                  <p className="text-sm italic" style={{ color: 'var(--c-text-2)' }}>{current?.example_sentence}</p>
+                <div style={{ borderRadius: 10, padding: '10px 14px', background: 'var(--chip)', border: '1px solid var(--line-soft)' }}>
+                  <p className="caps" style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 4 }}>Example</p>
+                  <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--ink-2)' }}>{current?.example_sentence}</p>
                 </div>
                 {current?.my_sentence && (
-                  <div className="rounded-xl px-4 py-3 text-left" style={{ background: 'var(--c-green-bg)', border: '1px solid var(--c-green-border)' }}>
-                    <p className="text-xs text-emerald-500 font-medium mb-1">Your sentence</p>
-                    <p className="text-sm italic" style={{ color: 'var(--c-text-2)' }}>{current?.my_sentence}</p>
+                  <div style={{ borderRadius: 10, padding: '10px 14px', background: 'rgba(125,219,168,0.12)', border: '1px solid rgba(125,219,168,0.3)' }}>
+                    <p className="caps" style={{ fontSize: 10, color: 'var(--mint)', marginBottom: 4 }}>Your sentence</p>
+                    <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--ink-2)' }}>{current?.my_sentence}</p>
                   </div>
                 )}
               </div>
@@ -202,7 +208,7 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Mnemonic hint — appears below card when flipped */}
+      {/* Mnemonic hint */}
       <AnimatePresence>
         {flipped && (
           <motion.div
@@ -212,30 +218,17 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
             transition={{ duration: 0.25, delay: 0.1 }}
           >
             {currentMnemonic ? (
-              <div
-                className="rounded-xl px-4 py-3 flex items-start gap-3"
-                style={{
-                  background: 'rgba(245,158,11,0.08)',
-                  border: '1px solid rgba(245,158,11,0.28)',
-                }}
-              >
-                <Lightbulb className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div style={{ borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(255,217,61,0.1)', border: '1px solid rgba(255,217,61,0.35)' }}>
+                <Lightbulb style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1, color: 'var(--saffron)' }} />
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#f59e0b' }}>
-                    Mẹo nhớ
-                  </p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--c-text-2)' }}>
-                    {currentMnemonic}
-                  </p>
+                  <p className="caps" style={{ fontSize: 9, color: 'var(--saffron)', marginBottom: 3 }}>Mẹo nhớ</p>
+                  <p style={{ fontSize: 13, color: 'var(--ink-2)' }}>{currentMnemonic}</p>
                 </div>
               </div>
             ) : mnemonicLoading ? (
-              <div
-                className="rounded-xl px-4 py-3 flex items-center gap-2"
-                style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}
-              >
-                <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
-                <p className="text-xs" style={{ color: 'var(--c-text-3)' }}>Đang tạo mẹo nhớ...</p>
+              <div style={{ borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,217,61,0.06)', border: '1px solid rgba(255,217,61,0.2)' }}>
+                <Lightbulb style={{ width: 14, height: 14, color: 'var(--saffron)', animation: 'pulse 1s infinite' }} />
+                <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Đang tạo mẹo nhớ...</p>
               </div>
             ) : null}
           </motion.div>
@@ -248,25 +241,25 @@ export function FlashcardStep({ vocabulary, onComplete }: Props) {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="grid grid-cols-2 gap-3">
             <button onClick={() => next('skip')}
-              className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-orange-500 transition-all active:scale-95"
-              style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.25)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(251,146,60,0.15)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(251,146,60,0.08)')}>
-              <XCircle className="w-5 h-5" /> Forgot
+              className="flex items-center justify-center gap-2 py-3"
+              style={{ borderRadius: 12, fontWeight: 600, color: 'var(--coral)', background: 'var(--blush)', border: '1.5px solid var(--coral)', boxShadow: 'var(--shadow-sm)', transition: 'all 0.08s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
+              <XCircle style={{ width: 18, height: 18 }} /> Forgot
             </button>
             <button onClick={() => next('know')}
-              className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all active:scale-95"
-              style={{ background: 'var(--c-green-bg)', border: '1px solid var(--c-green-border)', color: 'var(--c-text-1)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(52,211,153,0.18)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--c-green-bg)')}>
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Got it!
+              className="flex items-center justify-center gap-2 py-3"
+              style={{ borderRadius: 12, fontWeight: 600, color: '#fff', background: 'var(--lime)', border: '1.5px solid var(--ink)', boxShadow: 'var(--shadow-sm)', transition: 'all 0.08s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}>
+              <CheckCircle2 style={{ width: 18, height: 18 }} /> Got it!
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {!flipped && (
-        <p className="text-center text-xs" style={{ color: 'var(--c-text-3)' }}>Tap card to reveal meaning</p>
+        <p className="text-center" style={{ fontSize: 12, color: 'var(--ink-3)' }}>Tap card to reveal meaning</p>
       )}
     </div>
   )

@@ -25,67 +25,120 @@ export function NavBar() {
   useEffect(() => setMounted(true), [])
 
   return (
-    <nav
-      className="sticky top-0 z-50 w-full transition-colors duration-300"
-      style={{
-        background: 'var(--c-nav-bg)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--c-nav-border)',
-        boxShadow: '0 1px 12px rgba(0,0,0,0.08)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-        {/* Logo */}
-        <Link href={`/log/${today}`} className="flex items-center gap-2">
-          <span className="text-xl">🇬🇧</span>
-          <span className="font-bold text-lg gradient-text tracking-tight">Daily English</span>
+    <nav style={{ borderBottom: '1.5px solid var(--ink)', background: 'var(--paper)', position: 'sticky', top: 0, zIndex: 50 }}>
+      <div
+        style={{
+          maxWidth: 1360,
+          margin: '0 auto',
+          padding: '20px 32px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Brand */}
+        <Link href={`/log/${today}`} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+          <div
+            style={{
+              width: 42, height: 42,
+              border: '1.5px solid var(--ink)',
+              background: 'var(--lime)',
+              borderRadius: 12,
+              display: 'grid', placeItems: 'center',
+              boxShadow: 'var(--shadow-sm)',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24" fill="none" stroke="#fff"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ width: 22, height: 22 }}
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" />
+              <path d="M8 7h8M8 11h6" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 30, lineHeight: 1, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+              Daily <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>English</em>
+            </div>
+            <div className="caps" style={{ color: 'var(--ink-3)', fontSize: 10, marginTop: -2 }}>
+              est. 2026 · personal journal
+            </div>
+          </div>
         </Link>
 
-        <div className="flex items-center gap-1">
-          {/* Nav links */}
+        {/* Nav links */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
-              || (href.startsWith('/log') && pathname.startsWith('/log'))
-              || (href === '/plan' && pathname.startsWith('/plan'))
-              || (href === '/conversation' && pathname.startsWith('/conversation'))
+            const active =
+              pathname === href ||
+              (href.startsWith('/log') && pathname.startsWith('/log')) ||
+              (href === '/plan' && pathname.startsWith('/plan')) ||
+              (href === '/conversation' && pathname.startsWith('/conversation'))
             return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
-                  active
-                    ? 'text-violet-600 dark:text-violet-300'
-                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-                )}
-                style={active ? {
-                  background: 'var(--c-accent-bg)',
-                  border: '1px solid var(--c-accent-border)',
-                } : {
-                  border: '1px solid transparent',
-                }}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
+              <Link key={href} href={href} className={cn('nav-link-editorial', active && 'active')}>
+                <Icon style={{ width: 15, height: 15 }} />
+                <span>{label}</span>
               </Link>
             )
           })}
+        </div>
 
-          {/* Theme toggle */}
+        {/* Right: streak pill + theme toggle + avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px',
+              border: '1.5px solid var(--ink)',
+              borderRadius: 999,
+              background: 'var(--coral)',
+              color: '#fff',
+              fontWeight: 600, fontSize: 13,
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
+            <span>12 day streak</span>
+          </div>
+
           {mounted && (
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="ml-1 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-              style={{ border: '1px solid var(--c-card-border)' }}
               title="Toggle theme"
+              style={{
+                width: 38, height: 38,
+                border: '1.5px solid var(--ink)',
+                borderRadius: 10,
+                background: 'var(--paper-2)',
+                boxShadow: 'var(--shadow-sm)',
+                display: 'grid', placeItems: 'center',
+                cursor: 'pointer',
+                color: 'var(--ink)',
+              }}
             >
               {theme === 'dark'
-                ? <Sun className="w-4 h-4" />
-                : <Moon className="w-4 h-4" />
+                ? <Sun style={{ width: 16, height: 16 }} />
+                : <Moon style={{ width: 16, height: 16 }} />
               }
             </button>
           )}
+
+          <div
+            style={{
+              width: 38, height: 38,
+              border: '1.5px solid var(--ink)',
+              borderRadius: 10,
+              background: 'var(--saffron)',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'grid', placeItems: 'center',
+              fontWeight: 700, fontSize: 15,
+              color: 'var(--ink)',
+            }}
+          >
+            M
+          </div>
         </div>
       </div>
     </nav>
