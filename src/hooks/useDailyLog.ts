@@ -39,30 +39,13 @@ export function useUpsertDailyLog() {
     mutationFn: async (log: Partial<DailyLog> & { date: string }) => {
       if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
-      const { data: existing } = await supabase
+      const { data, error } = await supabase
         .from('daily_logs')
-        .select('id')
-        .eq('date', log.date)
-        .eq('user_id', userId)
-        .maybeSingle()
-      if (existing) {
-        const { data, error } = await supabase
-          .from('daily_logs')
-          .update(log)
-          .eq('id', existing.id)
-          .select()
-          .single()
-        if (error) throw error
-        return data as DailyLog
-      } else {
-        const { data, error } = await supabase
-          .from('daily_logs')
-          .insert({ ...log, user_id: userId })
-          .select()
-          .single()
-        if (error) throw error
-        return data as DailyLog
-      }
+        .upsert({ ...log, user_id: userId }, { onConflict: 'date,user_id' })
+        .select()
+        .single()
+      if (error) throw error
+      return data as DailyLog
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['daily-log', data.date] })
@@ -366,30 +349,13 @@ export function useUpsertWritingSession() {
     mutationFn: async (session: Partial<WritingSession> & { date: string; log_id: string }) => {
       if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
-      const { data: existing } = await supabase
+      const { data, error } = await supabase
         .from('writing_sessions')
-        .select('id')
-        .eq('date', session.date)
-        .eq('user_id', userId)
-        .maybeSingle()
-      if (existing) {
-        const { data, error } = await supabase
-          .from('writing_sessions')
-          .update(session)
-          .eq('id', existing.id)
-          .select()
-          .single()
-        if (error) throw error
-        return data as WritingSession
-      } else {
-        const { data, error } = await supabase
-          .from('writing_sessions')
-          .insert({ ...session, user_id: userId })
-          .select()
-          .single()
-        if (error) throw error
-        return data as WritingSession
-      }
+        .upsert({ ...session, user_id: userId }, { onConflict: 'date,user_id' })
+        .select()
+        .single()
+      if (error) throw error
+      return data as WritingSession
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['writing', data.date] })
@@ -440,7 +406,7 @@ export function useUpsertProgressDay() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('progress_days')
-        .upsert({ ...day, user_id: userId }, { onConflict: 'date' })
+        .upsert({ ...day, user_id: userId }, { onConflict: 'date,user_id' })
         .select()
         .single()
       if (error) throw error
