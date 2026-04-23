@@ -1,21 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useUser } from '@clerk/nextjs'
 import { createClient } from '@/lib/client'
 import { DailyLog, VocabularyEntry, WritingSession, ReviewItem } from '@/lib/supabase'
 import { api } from '@/lib/axios'
 import { toast } from 'sonner'
 import { format, addDays, parseISO } from 'date-fns'
 
+function useUserId() {
+  const { user } = useUser()
+  return user?.id ?? null
+}
+
 // ─── Daily Log ───────────────────────────────────────────────────────────────
 
 export function useDailyLog(date: string) {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['daily-log', date],
+    queryKey: ['daily-log', date, userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('daily_logs')
         .select('*')
         .eq('date', date)
+        .eq('user_id', userId!)
         .maybeSingle()
       if (error) throw error
       return data as DailyLog | null
@@ -24,17 +33,36 @@ export function useDailyLog(date: string) {
 }
 
 export function useUpsertDailyLog() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (log: Partial<DailyLog> & { date: string }) => {
+      if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
-      const { data, error } = await supabase
+      const { data: existing } = await supabase
         .from('daily_logs')
-        .upsert(log, { onConflict: 'date' })
-        .select()
-        .single()
-      if (error) throw error
-      return data as DailyLog
+        .select('id')
+        .eq('date', log.date)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (existing) {
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .update(log)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        if (error) throw error
+        return data as DailyLog
+      } else {
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .insert({ ...log, user_id: userId })
+          .select()
+          .single()
+        if (error) throw error
+        return data as DailyLog
+      }
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['daily-log', data.date] })
@@ -46,14 +74,17 @@ export function useUpsertDailyLog() {
 // ─── Vocabulary ──────────────────────────────────────────────────────────────
 
 export function useVocabularyEntries(date: string) {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['vocabulary', date],
+    queryKey: ['vocabulary', date, userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('vocabulary_entries')
         .select('*')
         .eq('date', date)
+        .eq('user_id', userId!)
         .order('created_at')
       if (error) throw error
       return (data ?? []) as VocabularyEntry[]
@@ -62,13 +93,16 @@ export function useVocabularyEntries(date: string) {
 }
 
 export function useAllVocabulary() {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['vocabulary', 'all'],
+    queryKey: ['vocabulary', 'all', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('vocabulary_entries')
         .select('*')
+        .eq('user_id', userId!)
         .order('created_at', { ascending: false })
       if (error) throw error
       return (data ?? []) as VocabularyEntry[]
@@ -77,6 +111,7 @@ export function useAllVocabulary() {
 }
 
 export function useGenerateVocabulary() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({
@@ -92,18 +127,18 @@ export function useGenerateVocabulary() {
       weekNumber: number
       existingWords: string[]
     }) => {
-      // 1. Call Claude API
+      if (!userId) throw new Error('Not authenticated')
       const { data: generated } = await api.post('/generate-vocabulary', {
         topic,
         week_number: weekNumber,
         existing_words: existingWords,
       })
 
-      // 2. Insert into Supabase
       const supabase = createClient()
       const rows = generated.words.map((w: { word: string; meaning: string; example_sentence: string }) => ({
         log_id: logId,
         date,
+        user_id: userId,
         word: w.word,
         meaning: w.meaning,
         example_sentence: w.example_sentence,
@@ -115,14 +150,13 @@ export function useGenerateVocabulary() {
         .from('vocabulary_entries')
         .insert(rows)
         .select()
-
       if (error) throw error
       const vocabData = data as VocabularyEntry[]
 
-      // Create SRS review entries: first review is tomorrow
       const tomorrow = format(addDays(parseISO(date), 1), 'yyyy-MM-dd')
       const reviewRows = vocabData.map((v) => ({
         vocabulary_entry_id: v.id,
+        user_id: userId,
         next_review_date: tomorrow,
         interval_days: 1,
         review_count: 0,
@@ -141,14 +175,17 @@ export function useGenerateVocabulary() {
 }
 
 export function useDeleteVocabularyByDate() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (date: string) => {
+      if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
       const { error } = await supabase
         .from('vocabulary_entries')
         .delete()
         .eq('date', date)
+        .eq('user_id', userId)
       if (error) throw error
     },
     onSuccess: (_, date) => {
@@ -161,22 +198,23 @@ export function useDeleteVocabularyByDate() {
 // ─── Spaced Repetition ───────────────────────────────────────────────────────
 
 export function useWordsForReview(date: string) {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['word-reviews', date],
+    queryKey: ['word-reviews', date, userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
 
-      // Get recent vocabulary entries from previous days (up to 60 words lookback)
       const { data: oldEntries, error: entErr } = await supabase
         .from('vocabulary_entries')
         .select('*')
         .lt('date', date)
+        .eq('user_id', userId!)
         .order('date', { ascending: false })
         .limit(60)
       if (entErr) throw entErr
       if (!oldEntries?.length) return [] as ReviewItem[]
 
-      // Get existing word_reviews for those entries
       const entryIds = oldEntries.map((e) => e.id)
       const { data: reviews, error: revErr } = await supabase
         .from('word_reviews')
@@ -186,24 +224,23 @@ export function useWordsForReview(date: string) {
 
       const reviewMap = new Map((reviews ?? []).map((r) => [r.vocabulary_entry_id, r]))
 
-      // Due words = entries with overdue review OR entries with no review row (backfill)
       const dueEntries = (oldEntries as VocabularyEntry[])
         .filter((entry) => {
           const review = reviewMap.get(entry.id)
-          if (!review) return true // no row yet → due immediately
+          if (!review) return true
           return review.next_review_date <= date
         })
         .slice(0, 15)
 
       if (!dueEntries.length) return [] as ReviewItem[]
 
-      // Auto-create word_reviews for entries that never had one (backfill)
       const noReview = dueEntries.filter((e) => !reviewMap.has(e.id))
       if (noReview.length > 0) {
         const { data: inserted, error: insErr } = await supabase
           .from('word_reviews')
           .insert(noReview.map((e) => ({
             vocabulary_entry_id: e.id,
+            user_id: userId,
             next_review_date: date,
             interval_days: 1,
             review_count: 0,
@@ -264,6 +301,7 @@ export function useUpdateWordReview() {
 }
 
 export function useUpdateMySentence() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, my_sentence, date }: { id: string; my_sentence: string; date: string }) => {
@@ -272,6 +310,7 @@ export function useUpdateMySentence() {
         .from('vocabulary_entries')
         .update({ my_sentence })
         .eq('id', id)
+        .eq('user_id', userId!)
       if (error) throw error
       return { id, my_sentence, date }
     },
@@ -284,13 +323,16 @@ export function useUpdateMySentence() {
 // ─── Writing Session ─────────────────────────────────────────────────────────
 
 export function useAllWritingSessions() {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['writing', 'all'],
+    queryKey: ['writing', 'all', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('writing_sessions')
         .select('date, content, mini_journal')
+        .eq('user_id', userId!)
         .order('date', { ascending: false })
       if (error) throw error
       return (data ?? []) as Pick<WritingSession, 'date' | 'content' | 'mini_journal'>[]
@@ -299,14 +341,17 @@ export function useAllWritingSessions() {
 }
 
 export function useWritingSession(date: string) {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['writing', date],
+    queryKey: ['writing', date, userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('writing_sessions')
         .select('*')
         .eq('date', date)
+        .eq('user_id', userId!)
         .maybeSingle()
       if (error) throw error
       return data as WritingSession | null
@@ -315,17 +360,36 @@ export function useWritingSession(date: string) {
 }
 
 export function useUpsertWritingSession() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (session: Partial<WritingSession> & { date: string; log_id: string }) => {
+      if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
-      const { data, error } = await supabase
+      const { data: existing } = await supabase
         .from('writing_sessions')
-        .upsert(session, { onConflict: 'date' })
-        .select()
-        .single()
-      if (error) throw error
-      return data as WritingSession
+        .select('id')
+        .eq('date', session.date)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (existing) {
+        const { data, error } = await supabase
+          .from('writing_sessions')
+          .update(session)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        if (error) throw error
+        return data as WritingSession
+      } else {
+        const { data, error } = await supabase
+          .from('writing_sessions')
+          .insert({ ...session, user_id: userId })
+          .select()
+          .single()
+        if (error) throw error
+        return data as WritingSession
+      }
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['writing', data.date] })
@@ -350,13 +414,16 @@ export function useGenerateWritingTopic() {
 // ─── Progress ────────────────────────────────────────────────────────────────
 
 export function useProgressDays() {
+  const userId = useUserId()
   return useQuery({
-    queryKey: ['progress'],
+    queryKey: ['progress', userId],
+    enabled: !!userId,
     queryFn: async () => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('progress_days')
         .select('*')
+        .eq('user_id', userId!)
         .order('date', { ascending: true })
       if (error) throw error
       return data ?? []
@@ -365,13 +432,15 @@ export function useProgressDays() {
 }
 
 export function useUpsertProgressDay() {
+  const userId = useUserId()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (day: { date: string; completed: boolean; words_count: number; writing_done: boolean }) => {
+      if (!userId) throw new Error('Not authenticated')
       const supabase = createClient()
       const { data, error } = await supabase
         .from('progress_days')
-        .upsert(day, { onConflict: 'date' })
+        .upsert({ ...day, user_id: userId }, { onConflict: 'date' })
         .select()
         .single()
       if (error) throw error

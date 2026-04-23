@@ -30,14 +30,12 @@ export default function VocabularyBankPage() {
 
   const withSentence = allVocab.filter((v) => !!v.my_sentence).length
   const masteryPct = allVocab.length > 0 ? Math.round((withSentence / allVocab.length) * 100) : 0
-  const circumference = 2 * Math.PI * 18
-  const dash = (masteryPct / 100) * circumference
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 40, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
+        <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 40, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
           Your vocab <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>bank</em>
         </h1>
         <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Every word you&apos;ve collected</p>
@@ -45,38 +43,25 @@ export default function VocabularyBankPage() {
 
       {/* Mini stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="mini-stat">
-          <div className="val">{allVocab.length}</div>
-          <div className="lbl">total words</div>
+        <div className="mini-stat on">
+          <div className="cap">total words</div>
+          <div className="v">{allVocab.length}</div>
+          <div className="h">collected</div>
+        </div>
+        <div className="mini-stat warm">
+          <div className="cap">with sentence</div>
+          <div className="v">{withSentence}</div>
+          <div className="h">your examples</div>
         </div>
         <div className="mini-stat">
-          <div className="val">{withSentence}</div>
-          <div className="lbl">with sentence</div>
+          <div className="cap">weeks active</div>
+          <div className="v">{[1,2,3,4].filter(w => allVocab.some(v => v.week_number === w)).length}</div>
+          <div className="h">out of 4</div>
         </div>
-        <div className="mini-stat">
-          <div className="val">{[1,2,3,4].filter(w => allVocab.some(v => v.week_number === w)).length}</div>
-          <div className="lbl">weeks active</div>
-        </div>
-        {/* Mastery ring */}
-        <div className="mini-stat">
-          <div className="mastery" style={{ justifyContent: 'center' }}>
-            <div className="mastery-ring">
-              <svg viewBox="0 0 40 40" width="40" height="40">
-                <circle className="track" cx="20" cy="20" r="18" />
-                <circle
-                  className="fill"
-                  cx="20" cy="20" r="18"
-                  strokeDasharray={`${dash} ${circumference}`}
-                  strokeDashoffset="0"
-                  style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-                />
-              </svg>
-            </div>
-            <div>
-              <div className="mastery-pct">{masteryPct}%</div>
-              <div className="mastery-label">mastery</div>
-            </div>
-          </div>
+        <div className="mini-stat dark">
+          <div className="cap">mastery</div>
+          <div className="v">{masteryPct}%</div>
+          <div className="h">with sentences</div>
         </div>
       </div>
 
@@ -123,7 +108,7 @@ export default function VocabularyBankPage() {
       {isLoading ? (
         <div className="vb-grid">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ height: 140, borderRadius: 14, background: 'var(--chip)', border: '1.5px solid var(--line-soft)', animation: 'pulse 1.5s infinite' }} />
+            <div key={i} style={{ height: 160, borderRadius: 14, background: 'var(--chip)', border: '1.5px solid var(--line-soft)', animation: 'pulse 1.5s infinite' }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -155,8 +140,6 @@ export default function VocabularyBankPage() {
 
 function VBCard({ entry, idx, colorClass }: { entry: VocabularyEntry; idx: number; colorClass: string }) {
   const masteryPct = entry.my_sentence ? 100 : 40
-  const circumference = 2 * Math.PI * 14
-  const dash = (masteryPct / 100) * circumference
 
   const handleSpeak = () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -173,51 +156,33 @@ function VBCard({ entry, idx, colorClass }: { entry: VocabularyEntry; idx: numbe
       className={`vb-card vb-card-${colorClass}`}
     >
       <div>
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div>
-            <div className="vb-word">{entry.word}</div>
-            <div className="vb-meaning">{entry.meaning}</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {/* Mastery ring */}
-            <div className="mastery-ring" style={{ width: 32, height: 32 }}>
-              <svg viewBox="0 0 32 32" width="32" height="32">
-                <circle className="track" cx="16" cy="16" r="14" strokeWidth="3" />
-                <circle
-                  className="fill" cx="16" cy="16" r="14" strokeWidth="3"
-                  strokeDasharray={`${dash} ${circumference}`}
-                  style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-                />
-              </svg>
-            </div>
-            <button className="icon-btn" onClick={handleSpeak}>
-              <Volume2 style={{ width: 12, height: 12 }} />
-            </button>
-          </div>
+        <div>
+          <span className="w">{entry.word}</span>
         </div>
-
-        {/* Meta row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: 'var(--chip)', border: '1.5px solid var(--line-soft)', color: 'var(--ink-2)' }}>
-            W{entry.week_number}
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
-            {format(parseISO(entry.date), 'MMM d')}
-          </span>
-          {entry.my_sentence && (
-            <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 11, background: 'rgba(125,219,168,0.15)', color: 'var(--mint)', border: '1px solid rgba(125,219,168,0.3)' }}>
-              ✓ sentence
-            </span>
-          )}
+        <div className="m">
+          <span className="vn">{entry.meaning}</span>
         </div>
-
-        {/* Example */}
         {entry.example_sentence && (
-          <div style={{ marginTop: 10, fontSize: 12, fontStyle: 'italic', color: 'var(--ink-3)', borderLeft: '2px solid var(--lime)', paddingLeft: 8 }}>
-            {entry.example_sentence}
-          </div>
+          <div className="ex">{entry.example_sentence}</div>
         )}
+        <div className="footer-row">
+          <div className="chips">
+            <span className="wc week">W{entry.week_number}</span>
+            {entry.my_sentence && <span className="wc learned">✓ learned</span>}
+            <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>{format(parseISO(entry.date), 'MMM d')}</span>
+          </div>
+        </div>
+      </div>
+      <div className="right">
+        <div
+          className="mastery"
+          style={{ '--p': `${masteryPct}%` } as React.CSSProperties}
+        >
+          <span>{masteryPct}%</span>
+        </div>
+        <button className="icon-btn" onClick={handleSpeak}>
+          <Volume2 style={{ width: 12, height: 12 }} />
+        </button>
       </div>
     </motion.div>
   )

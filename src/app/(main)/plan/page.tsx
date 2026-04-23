@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '@/lib/axios'
-import { Sparkles, Loader2, Mic, ChevronDown, ChevronUp, CheckCircle2, XCircle, RotateCcw } from 'lucide-react'
+import { Sparkles, Loader2, Mic, ChevronDown, ChevronUp, CheckCircle2, XCircle, RotateCcw, Volume2 } from 'lucide-react'
 import type { WeeklyPlan } from '@/app/api/generate-plan/route'
 
 type TabId = 'phrases' | 'vocabulary' | 'grammar' | 'speaking' | 'test'
@@ -37,16 +37,30 @@ function loadPlan(week: number): WeeklyPlan | null {
   } catch { return null }
 }
 
+function speak(text: string) {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+    const utt = new SpeechSynthesisUtterance(text)
+    utt.lang = 'en-US'
+    window.speechSynthesis.speak(utt)
+  }
+}
+
 function PhrasesTab({ phrases }: { phrases: WeeklyPlan['phrases'] }) {
   return (
-    <div className="card-editorial p-5">
+    <div className="space-y-3">
       {phrases.map((p, i) => (
         <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
           className="phrase">
           <div className="no">{i + 1}</div>
-          <div className="en">{p.phrase}</div>
-          <div className="vn">{p.meaning_vi}</div>
-          <div className="ctx">{p.example}</div>
+          <div>
+            <div className="en">{p.phrase}</div>
+            <div className="vn">{p.meaning_vi}</div>
+            <div className="ctx">{p.example}</div>
+          </div>
+          <button className="icon-btn" onClick={() => speak(p.phrase)}>
+            <Volume2 style={{ width: 14, height: 14 }} />
+          </button>
         </motion.div>
       ))}
     </div>
@@ -118,12 +132,16 @@ function GrammarTab({ grammar }: { grammar: WeeklyPlan['grammar'] }) {
             <AnimatePresence>
               {isOpen && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 14px', background: 'var(--paper-2)' }}>
+                  <div style={{ padding: '14px', background: 'var(--paper-2)' }}>
                     <div className="grammar-box">
-                      <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{g.explanation_vi}</p>
-                      {g.examples.map((ex, j) => (
-                        <div key={j} className="grammar-ex">{ex}</div>
-                      ))}
+                      <div className="cap">Explanation</div>
+                      <div className="rule">{g.point}</div>
+                      <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, marginTop: 8 }}>{g.explanation_vi}</p>
+                      <ul className="grammar-ex">
+                        {g.examples.map((ex, j) => (
+                          <li key={j}>{ex}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </motion.div>
@@ -285,128 +303,151 @@ export default function PlanPage() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 48 }}>
-      {/* Page header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
+    <div style={{ paddingBottom: 48 }}>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
+        <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
           The 30-day <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>sprint</em>
         </h1>
         <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Personalised weekly learning plan — phrases, vocab, grammar &amp; speaking</p>
       </motion.div>
 
-      {/* Controls */}
-      <div className="card-editorial p-5 space-y-4" style={{ marginBottom: 20 }}>
-        {/* Week selector */}
-        <div>
-          <p className="caps" style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 8 }}>Tuần học</p>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4].map((w) => {
-              const active = selectedWeek === w
-              return (
-                <button key={w} onClick={() => setSelectedWeek(w)}
-                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                    background: active ? 'var(--ink)' : 'var(--paper-2)',
-                    border: `1.5px solid ${active ? 'var(--ink)' : 'var(--line-soft)'}`,
-                    color: active ? 'var(--paper)' : 'var(--ink-2)',
-                    boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                    transition: 'all 0.1s',
-                  }}>
-                  Week {w}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Topic selector */}
-        <div>
-          <p className="caps" style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 8 }}>Chủ đề</p>
-          <div className="flex flex-wrap gap-2">
-            {TOPICS.map(({ value, emoji }) => {
-              const active = selectedTopic === value
-              return (
-                <button key={value} onClick={() => setSelectedTopic(value)}
-                  className="flex items-center gap-1.5"
-                  style={{ padding: '7px 12px', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                    background: active ? 'var(--sky)' : 'var(--paper-2)',
-                    border: `1.5px solid ${active ? 'var(--lime)' : 'var(--line-soft)'}`,
-                    color: active ? 'var(--lime)' : 'var(--ink-2)',
-                    boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                    transition: 'all 0.1s',
-                  }}>
-                  <span>{emoji}</span> {value}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Generate button */}
-        <button onClick={handleGenerate} disabled={loading}
-          className="btn-action w-full justify-center"
-          style={{ opacity: loading ? 0.7 : 1 }}>
-          {loading
-            ? <><Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> Đang tạo kế hoạch...</>
-            : <><Sparkles style={{ width: 15, height: 15 }} /> Tạo kế hoạch Week {selectedWeek} · {selectedTopic}</>
-          }
-        </button>
-
-        {fromCache && plan && (
-          <p style={{ fontSize: 12, textAlign: 'center', color: 'var(--ink-3)' }}>
-            📦 Đã tải kế hoạch Week {plan.week} · {plan.topic} từ bộ nhớ —{' '}
-            <button style={{ textDecoration: 'underline', color: 'var(--lime)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }} onClick={handleGenerate}>
-              Tạo lại
-            </button>
-          </p>
-        )}
-        {error && <p style={{ fontSize: 12, color: 'var(--coral)', textAlign: 'center' }}>{error}</p>}
+      {/* Sprint week cards */}
+      <div className="sprint">
+        {[1, 2, 3, 4].map((w) => {
+          const status = w === selectedWeek ? 'current' : w < selectedWeek ? 'done' : 'future'
+          const dotsOn = status === 'done' ? 5 : status === 'current' ? 2 : 0
+          return (
+            <motion.div
+              key={w}
+              whileHover={{ y: -2 }}
+              className={`week-card ${status}`}
+              onClick={() => setSelectedWeek(w)}
+            >
+              <div className="wk-no">Week {w}</div>
+              <div className="wk-title">W{w}</div>
+              <div className="wk-desc">
+                {status === 'done' ? 'Completed — great work!' : status === 'current' ? 'In progress now' : 'Coming up next'}
+              </div>
+              <div className="wk-foot">
+                <span>{status === 'done' ? '✓ Done' : status === 'current' ? 'Active' : 'Locked'}</span>
+                <div className="wk-dots">
+                  {[0,1,2,3,4].map((i) => (
+                    <div key={i} className={`wk-dot ${i < dotsOn ? 'on' : ''}`} />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )
+        })}
       </div>
 
-      {/* Plan content */}
-      <AnimatePresence>
-        {plan && (
-          <motion.div key={`${plan.week}-${plan.topic}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--paper-2)', border: '1.5px solid var(--line-soft)', borderRadius: 14, boxShadow: 'var(--shadow-sm)' }}>
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.id
+      {/* Plan layout */}
+      <div className="plan-layout">
+        {/* Left: tabs + content */}
+        <div>
+          {plan && (
+            <>
+              <div className="plan-tabs">
+                {TABS.map((tab) => (
+                  <button key={tab.id} className={`plan-tab ${activeTab === tab.id ? 'on' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                    {tab.emoji} {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+                  {activeTab === 'phrases'    && <PhrasesTab    phrases={plan.phrases}       />}
+                  {activeTab === 'vocabulary' && <VocabularyTab vocabulary={plan.vocabulary} />}
+                  {activeTab === 'grammar'    && <GrammarTab    grammar={plan.grammar}       />}
+                  {activeTab === 'speaking'   && <SpeakingTab   speaking={plan.speaking}     />}
+                  {activeTab === 'test'       && <TestTab       test={plan.test}             />}
+                </motion.div>
+              </AnimatePresence>
+            </>
+          )}
+
+          {!plan && !loading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-editorial p-10 text-center">
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+              <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 4 }}>Chưa có kế hoạch cho tuần này</p>
+              <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Chọn chủ đề ở bên phải, rồi nhấn &ldquo;Tạo kế hoạch&rdquo; để bắt đầu</p>
+            </motion.div>
+          )}
+
+          {loading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-editorial p-10 text-center">
+              <Loader2 style={{ width: 32, height: 32, margin: '0 auto 12px', animation: 'spin 1s linear infinite', color: 'var(--lime)' }} />
+              <p style={{ fontSize: 14, color: 'var(--ink-2)' }}>Đang tạo kế hoạch Week {selectedWeek}…</p>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Right: sidebar */}
+        <aside className="space-y-4">
+          <div className="topic-hero">
+            <div className="cap">Week {selectedWeek} · {plan ? 'Generated' : 'Ready to generate'}</div>
+            <div className="ttl">{selectedTopic}</div>
+            <div className="desc">Phrases, vocabulary, grammar and speaking drills for everyday English.</div>
+            <div className="chips">
+              {TABS.map((t) => (
+                <div key={t.id} className="ch">{t.emoji} {t.label}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card-editorial p-4">
+            <div className="plan-meta">
+              <div className="row"><span className="k">Week</span><span className="v">{selectedWeek} of 4</span></div>
+              <div className="row"><span className="k">Topic</span><span className="v">{selectedTopic}</span></div>
+              <div className="row"><span className="k">Status</span><span className="v">{plan ? '✓ Generated' : 'Not started'}</span></div>
+            </div>
+          </div>
+
+          <div className="card-editorial p-4 space-y-3">
+            <p className="caps" style={{ fontSize: 10, color: 'var(--ink-3)' }}>Chủ đề</p>
+            <div className="flex flex-wrap gap-2">
+              {TOPICS.map(({ value, emoji }) => {
+                const active = selectedTopic === value
                 return (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.1s',
-                      background: isActive ? 'var(--ink)' : 'transparent',
-                      border: isActive ? '1.5px solid var(--ink)' : '1.5px solid transparent',
-                      color: isActive ? 'var(--paper)' : 'var(--ink-3)',
-                      boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
+                  <button key={value} onClick={() => setSelectedTopic(value)}
+                    className="flex items-center gap-1.5"
+                    style={{
+                      padding: '7px 12px', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                      background: active ? 'var(--sky)' : 'var(--paper-2)',
+                      border: `1.5px solid ${active ? 'var(--lime)' : 'var(--line-soft)'}`,
+                      color: active ? 'var(--lime)' : 'var(--ink-2)',
+                      boxShadow: active ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.1s',
                     }}>
-                    <span style={{ fontSize: 16, lineHeight: 1 }}>{tab.emoji}</span>
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span>{emoji}</span> {value}
                   </button>
                 )
               })}
             </div>
 
-            {/* Tab content */}
-            <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                {activeTab === 'phrases'    && <PhrasesTab    phrases={plan.phrases}       />}
-                {activeTab === 'vocabulary' && <VocabularyTab vocabulary={plan.vocabulary} />}
-                {activeTab === 'grammar'    && <GrammarTab    grammar={plan.grammar}       />}
-                {activeTab === 'speaking'   && <SpeakingTab   speaking={plan.speaking}     />}
-                {activeTab === 'test'       && <TestTab       test={plan.test}             />}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <button onClick={handleGenerate} disabled={loading}
+              className="btn-action w-full justify-center"
+              style={{ opacity: loading ? 0.7 : 1 }}>
+              {loading
+                ? <><Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> Đang tạo…</>
+                : <><Sparkles style={{ width: 15, height: 15 }} /> Tạo kế hoạch Week {selectedWeek}</>
+              }
+            </button>
 
-      {/* Empty state */}
-      {!plan && !loading && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-editorial p-10 text-center">
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-          <p style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 4 }}>Chưa có kế hoạch cho tuần này</p>
-          <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Chọn tuần và chủ đề, rồi nhấn &ldquo;Tạo kế hoạch&rdquo; để bắt đầu</p>
-        </motion.div>
-      )}
+            {fromCache && plan && (
+              <p style={{ fontSize: 12, textAlign: 'center', color: 'var(--ink-3)' }}>
+                📦 Đã tải từ bộ nhớ —{' '}
+                <button style={{ textDecoration: 'underline', color: 'var(--lime)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }} onClick={handleGenerate}>
+                  Tạo lại
+                </button>
+              </p>
+            )}
+            {error && <p style={{ fontSize: 12, color: 'var(--coral)', textAlign: 'center' }}>{error}</p>}
+          </div>
+        </aside>
+      </div>
     </div>
   )
 }

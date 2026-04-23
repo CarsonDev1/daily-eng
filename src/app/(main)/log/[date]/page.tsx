@@ -457,7 +457,7 @@ export default function LogPage() {
   // ── Loading ──
   if (logLoading) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: 22 }}>
+      <div className="log-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Skeleton className="h-28 w-full rounded-2xl" />
           <Skeleton className="h-72 w-full rounded-2xl" />
@@ -467,7 +467,7 @@ export default function LogPage() {
           <Skeleton className="h-32 w-full rounded-2xl" />
           <Skeleton className="h-96 w-full rounded-2xl" />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="log-right-rail" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Skeleton className="h-64 w-full rounded-2xl" />
           <Skeleton className="h-32 w-full rounded-2xl" />
         </div>
@@ -480,16 +480,14 @@ export default function LogPage() {
   return (
     <div>
       {/* ── Page header ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr auto',
-        gap: 24, alignItems: 'flex-end',
+      <div className="log-header" style={{
         padding: '8px 0 28px',
         borderBottom: '1.5px solid var(--line-soft)',
         marginBottom: 28,
       }}>
         <div>
           {/* Big editorial date */}
-          <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 64, lineHeight: 0.95, letterSpacing: '-0.03em' }}>
+          <div className="log-date" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 64, lineHeight: 0.95, letterSpacing: '-0.03em' }}>
             <span style={{ color: 'var(--ink)' }}>{dow},</span>{' '}
             <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>{mo}</em>{' '}
             <span style={{
@@ -517,7 +515,7 @@ export default function LogPage() {
         </div>
 
         {/* Stats strip */}
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div className="log-stats" style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
           {[
             { k: 'Today',      v: `${completedCount}`, detail: `/ ${STEPS.length}`,  unit: 'stations done', bg: 'var(--lime)',    color: '#fff' },
             { k: 'Vocab bank', v: `${vocabulary.length}`, detail: '',                unit: 'words today',   bg: 'var(--sky)',    color: 'var(--ink)' },
@@ -541,20 +539,22 @@ export default function LogPage() {
       </div>
 
       {/* ── 3-column grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: 22, alignItems: 'start' }}>
+      <div className="log-grid">
 
         {/* Left sidebar */}
-        <Sidebar
-          activeStep={activeStep}
-          setActiveStep={setActiveStep}
-          log={log}
-          doneMap={doneMap}
-          completedCount={completedCount}
-          onUpdateLog={(fields) => upsertLog.mutate({ date, week_number: log?.week_number ?? 1, ...fields })}
-        />
+        <div className="log-sidebar">
+          <Sidebar
+            activeStep={activeStep}
+            setActiveStep={setActiveStep}
+            log={log}
+            doneMap={doneMap}
+            completedCount={completedCount}
+            onUpdateLog={(fields) => upsertLog.mutate({ date, week_number: log?.week_number ?? 1, ...fields })}
+          />
+        </div>
 
         {/* Main content */}
-        <main style={{ minWidth: 0 }}>
+        <main className="log-main" style={{ minWidth: 0 }}>
           <AnimatePresence mode="wait">
             <motion.div key={activeStep} variants={slideIn} initial="hidden" animate="show" exit="exit">
               {activeStep === 'vocabulary' && (
@@ -633,7 +633,9 @@ export default function LogPage() {
         </main>
 
         {/* Right rail */}
-        <RightRail doneMap={doneMap} />
+        <div className="log-right-rail">
+          <RightRail doneMap={doneMap} />
+        </div>
       </div>
     </div>
   )

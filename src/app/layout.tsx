@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
-import { NavBar } from '@/components/NavBar'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -32,18 +32,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans min-h-screen`}
-      >
-        <Providers>
-          <div className="relative z-10">
-            <NavBar />
-            <main className="max-w-[1360px] mx-auto px-8 py-6">{children}</main>
-          </div>
-          <Toaster richColors position="top-right" />
-        </Providers>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans min-h-screen`}
+        >
+          <Providers>
+            {children}
+            <Toaster richColors position="top-right" />
+          </Providers>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

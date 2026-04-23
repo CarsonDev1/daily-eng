@@ -71,7 +71,7 @@ export default function ConversationPage() {
   const [error,    setError]    = useState('')
 
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLInputElement>(null)
+  const inputRef  = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
@@ -109,14 +109,13 @@ export default function ConversationPage() {
     }
   }
 
-  const agentName = mode === 'chat' ? 'Jake' : (scenario?.role.split(' ')[0] ?? 'Agent')
   const suggestions = SUGGESTIONS[scenario?.id ?? 'chat'] ?? SUGGESTIONS.chat
 
   return (
     <div className="space-y-6" style={{ paddingBottom: 32 }}>
       {/* Header */}
       <div>
-        <h1 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
+        <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
           Talk it <em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>out</em>
         </h1>
         <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>AI conversation partner — instant grammar coaching</p>
@@ -127,10 +126,10 @@ export default function ConversationPage() {
         <div className="space-y-4">
           {/* Mode toggle */}
           <div className="mode-toggle">
-            <button className={mode === 'chat' ? 'active' : ''} onClick={() => handleModeSwitch('chat')}>
+            <button className={`m ${mode === 'chat' ? 'on' : ''}`} onClick={() => handleModeSwitch('chat')}>
               Free Chat
             </button>
-            <button className={mode === 'roleplay' ? 'active' : ''} onClick={() => handleModeSwitch('roleplay')}>
+            <button className={`m ${mode === 'roleplay' ? 'on' : ''}`} onClick={() => handleModeSwitch('roleplay')}>
               Role-play
             </button>
           </div>
@@ -138,12 +137,15 @@ export default function ConversationPage() {
           {/* Scenarios */}
           <AnimatePresence>
             {mode === 'roleplay' && (
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-1">
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-2">
                 <p className="caps" style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 8 }}>Pick a scenario</p>
                 {SCENARIOS.map((s) => (
-                  <div key={s.id} className={`scenario ${scenario?.id === s.id ? 'active' : ''}`} onClick={() => handleScenarioSelect(s)}>
-                    <div className="title">{s.emoji} {s.label}</div>
-                    <div className="sub">{s.role.split(' at ')[0]}</div>
+                  <div key={s.id} className={`scenario ${scenario?.id === s.id ? 'on' : ''}`} onClick={() => handleScenarioSelect(s)}>
+                    <div className="emo">{s.emoji}</div>
+                    <div>
+                      <div className="t">{s.label}</div>
+                      <div className="d">{s.role.split(' at ')[0]}</div>
+                    </div>
                   </div>
                 ))}
               </motion.div>
@@ -152,10 +154,12 @@ export default function ConversationPage() {
 
           {mode === 'chat' && (
             <div className="topic-hero">
-              <h2>Jake</h2>
-              <p>Your friendly New York conversation partner. Ask anything, chat about life.</p>
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                💡 Grammar mistakes are gently corrected after each reply
+              <div className="cap">Free Conversation</div>
+              <div className="ttl">Jake</div>
+              <div className="desc">Your friendly New York conversation partner. Ask anything, chat about life.</div>
+              <div className="chips">
+                <div className="ch">💡 Grammar coaching</div>
+                <div className="ch">🗽 New York vibes</div>
               </div>
             </div>
           )}
@@ -165,27 +169,28 @@ export default function ConversationPage() {
         <div className="chat-shell">
           {/* Top bar */}
           <div className="chat-top">
-            <div style={{ width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 16, background: 'var(--chip)', border: '1.5px solid var(--line-soft)', flexShrink: 0 }}>
-              {mode === 'chat' ? '👨' : scenario ? scenario.emoji : '🎭'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="role-head">
-                {mode === 'chat' ? 'Jake' : scenario ? scenario.role.split(' at ')[0] : 'Select a scenario'}
+            <div className="chat-top-l">
+              <div className="av">
+                {mode === 'chat' ? '👨' : scenario ? scenario.emoji : '🎭'}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
-                {mode === 'chat' ? 'Free Chat' : scenario ? scenario.label : '—'}
+              <div>
+                <div className="who">
+                  {mode === 'chat' ? 'Jake' : scenario ? scenario.role.split(' at ')[0] : 'Select a scenario'}
+                </div>
+                <div className="role">
+                  {mode === 'chat' ? 'Free Chat' : scenario ? scenario.label : '—'}
+                </div>
               </div>
             </div>
-            <button onClick={() => resetConversation(mode, scenario)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, color: 'var(--ink-3)', border: '1.5px solid var(--line-soft)', background: 'var(--paper-2)', cursor: 'pointer' }}>
-              <RotateCcw style={{ width: 11, height: 11 }} /> Reset
-            </button>
-          </div>
-
-          {/* Suggestions */}
-          <div className="suggest-row">
-            {suggestions.map((s) => (
-              <button key={s} onClick={() => handleSend(s)}>{s}</button>
-            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="status">
+                <div className="d" />
+                Online
+              </div>
+              <button onClick={() => resetConversation(mode, scenario)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '5px 10px', borderRadius: 8, color: 'rgba(255,255,255,0.7)', border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.12)', cursor: 'pointer' }}>
+                <RotateCcw style={{ width: 11, height: 11 }} /> Reset
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -204,7 +209,7 @@ export default function ConversationPage() {
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className={`bubble ${msg.role === 'user' ? 'me' : 'them'}`}
                 >
-                  {msg.content}
+                  <div className="main">{msg.content}</div>
                 </motion.div>
                 {msg.coaching && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
@@ -226,28 +231,38 @@ export default function ConversationPage() {
 
           {/* Compose */}
           <div className="chat-compose">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
-              placeholder={mode === 'roleplay' && !scenario ? 'Select a scenario first...' : 'Type your message… (Enter to send)'}
-              disabled={isTyping || (mode === 'roleplay' && !scenario)}
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isTyping || (mode === 'roleplay' && !scenario)}
-              style={{
-                width: 38, height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.1s',
-                background: input.trim() ? 'var(--ink)' : 'var(--chip)',
-                border: `1.5px solid ${input.trim() ? 'var(--ink)' : 'var(--line-soft)'}`,
-                opacity: (!input.trim() || isTyping) ? 0.4 : 1,
-              }}
-            >
-              <Send style={{ width: 14, height: 14, color: input.trim() ? 'var(--paper)' : 'var(--ink-3)' }} />
-            </button>
+            <div className="suggest-row">
+              {suggestions.map((s) => (
+                <button key={s} className="s-chip" onClick={() => handleSend(s)}>{s}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                rows={1}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                placeholder={mode === 'roleplay' && !scenario ? 'Select a scenario first...' : 'Type your message… (Enter to send)'}
+                disabled={isTyping || (mode === 'roleplay' && !scenario)}
+                style={{
+                  flex: 1, padding: '12px 14px', border: '1.5px solid var(--ink)', borderRadius: 12,
+                  background: 'var(--paper-2)', minHeight: 50, maxHeight: 140, resize: 'none',
+                  fontSize: 14, outline: 'none', fontFamily: 'inherit', color: 'var(--ink)',
+                }}
+              />
+              <button
+                className="c-send"
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isTyping || (mode === 'roleplay' && !scenario)}
+                style={{ opacity: (!input.trim() || isTyping) ? 0.4 : 1 }}
+              >
+                <Send style={{ width: 14, height: 14 }} />
+                Send
+              </button>
+            </div>
+            {error && <p style={{ fontSize: 12, color: 'var(--coral)', textAlign: 'center', padding: '4px 0 0' }}>{error}</p>}
           </div>
-          {error && <p style={{ fontSize: 12, color: 'var(--coral)', textAlign: 'center', padding: '4px 0 8px' }}>{error}</p>}
         </div>
       </div>
     </div>
