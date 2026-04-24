@@ -480,7 +480,7 @@ export default function LogPage() {
   return (
     <div>
       {/* ── Page header ── */}
-      <div className="log-header" style={{
+      <div id="tour-log-header" className="log-header" style={{
         padding: '8px 0 28px',
         borderBottom: '1.5px solid var(--line-soft)',
         marginBottom: 28,
@@ -542,7 +542,7 @@ export default function LogPage() {
       <div className="log-grid">
 
         {/* Left sidebar */}
-        <div className="log-sidebar">
+        <div id="tour-log-route" className="log-sidebar">
           <Sidebar
             activeStep={activeStep}
             setActiveStep={setActiveStep}
@@ -554,7 +554,7 @@ export default function LogPage() {
         </div>
 
         {/* Main content */}
-        <main className="log-main" style={{ minWidth: 0 }}>
+        <main id="tour-log-main" className="log-main" style={{ minWidth: 0 }}>
           <AnimatePresence mode="wait">
             <motion.div key={activeStep} variants={slideIn} initial="hidden" animate="show" exit="exit">
               {activeStep === 'vocabulary' && (
@@ -633,7 +633,7 @@ export default function LogPage() {
         </main>
 
         {/* Right rail */}
-        <div className="log-right-rail">
+        <div id="tour-log-checklist" className="log-right-rail">
           <RightRail doneMap={doneMap} />
         </div>
       </div>

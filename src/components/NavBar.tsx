@@ -6,16 +6,17 @@ import { format } from 'date-fns'
 import { BookOpen, BarChart2, Library, CalendarDays, MessagesSquare, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserButton, useUser } from '@clerk/nextjs'
+import { TourButton } from './TourButton'
 
 const today = format(new Date(), 'yyyy-MM-dd')
 
 const links = [
-  { href: `/log/${today}`,    label: 'Today',       icon: BookOpen },
-  { href: '/plan',            label: 'Plan',        icon: CalendarDays },
-  { href: '/conversation',    label: 'Practice',    icon: MessagesSquare },
-  { href: '/progress',        label: 'Progress',    icon: BarChart2 },
-  { href: '/vocabulary-bank', label: 'Vocab',       icon: Library },
-  { href: '/leaderboard',     label: 'Leaderboard', icon: Trophy },
+  { href: `/log/${today}`,    label: 'Today',       icon: BookOpen,       id: 'nav-today' },
+  { href: '/plan',            label: 'Plan',        icon: CalendarDays,   id: 'nav-plan' },
+  { href: '/conversation',    label: 'Practice',    icon: MessagesSquare, id: 'nav-conversation' },
+  { href: '/progress',        label: 'Progress',    icon: BarChart2,      id: 'nav-progress' },
+  { href: '/vocabulary-bank', label: 'Vocab',       icon: Library,        id: 'nav-vocab' },
+  { href: '/leaderboard',     label: 'Leaderboard', icon: Trophy,         id: 'nav-leaderboard' },
 ]
 
 export function NavBar() {
@@ -75,16 +76,17 @@ export function NavBar() {
 
           {/* Nav links — desktop/tablet */}
           <div className="nav-desktop-links">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href} className={cn('nav-link-editorial', isActive(href) && 'active')}>
+            {links.map(({ href, label, icon: Icon, id }) => (
+              <Link key={href} id={id} href={href} className={cn('nav-link-editorial', isActive(href) && 'active')}>
                 <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />
                 <span className="nav-link-label">{label}</span>
               </Link>
             ))}
           </div>
 
-          {/* Right: user */}
+          {/* Right: tour button + user */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <TourButton />
             {user && (
               <div className="nav-username" style={{
                 fontSize: 12, color: 'var(--ink-2)', fontWeight: 500,

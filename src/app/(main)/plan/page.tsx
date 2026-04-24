@@ -303,7 +303,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div style={{ paddingBottom: 48 }}>
+    <div id="tour-plan-page" style={{ paddingBottom: 48 }}>
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
         <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>

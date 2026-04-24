@@ -60,7 +60,7 @@ export default function ProgressPage() {
   const barColors = ['', 'coral', 'saffron', 'sky']
 
   return (
-    <div className="space-y-8">
+    <div id="tour-progress-page" className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 42, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>

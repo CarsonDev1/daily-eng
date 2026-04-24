@@ -104,6 +104,22 @@
   }
 }
 
+/* ─── Onborda z-index fix ───────────────────────────────────────────────────
+   Framer Motion's will-change: transform creates a stacking context with
+   z-index: auto (paint order category 6), which sits BELOW any element with
+   an explicit positive z-index like our layout's z-10. We force all Onborda
+   layers to explicit high values so they always render above page content.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-name="onborda-overlay"] {
+  z-index: 9997 !important;
+}
+[data-name="onborda-pointer"] {
+  z-index: 9998 !important;
+}
+[data-name="onborda-card"] {
+  z-index: 9999 !important;
+}
+
 /* Paper grain texture */
 body::before {
   content: '';

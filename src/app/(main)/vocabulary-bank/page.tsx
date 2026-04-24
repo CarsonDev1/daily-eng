@@ -32,7 +32,7 @@ export default function VocabularyBankPage() {
   const masteryPct = allVocab.length > 0 ? Math.round((withSentence / allVocab.length) * 100) : 0
 
   return (
-    <div className="space-y-6">
+    <div id="tour-vocab-page" className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-h1" style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 40, color: 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
